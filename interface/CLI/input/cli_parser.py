@@ -1,0 +1,13 @@
+from typing import List
+
+from interface.CLI.input.commands import *
+
+
+class CLIParser:
+    @staticmethod
+    def parse_as_command(command_name: str, args: List[str]) -> Command:
+        return {
+            "help"                  : CLIHelpCommand,
+            "gui"                   : LaunchGUICommand,
+
+        }[command_name](args)
