@@ -4,44 +4,46 @@ from pathlib import Path
 import platform
 import ctypes
 import subprocess
+import inspect
+import sys
+from pathlib import Path
+
 
 class Env:
-
     @staticmethod
-    def get_script_path():
+    def get_script_path() -> str:
+        """
+        Return the directory of the caller script as a POSIX string.
+        """
         frame = inspect.stack()[1]
         caller_file = Path(frame.filename).resolve().parent
         return caller_file.as_posix()
 
     @staticmethod
-    def base_path() -> Path:
+    def base_dir() -> Path:
+        """
+        Return the base path of the application.
+        - If running as a PyInstaller bundle, use the executable's directory.
+        - Otherwise, use the project root (two levels up from this file).
+        """
         if getattr(sys, "frozen", False):
-            # Running in a PyInstaller bundle
             return Path(sys.executable).parent.resolve()
-        else:
-            # Running in normal Python environment
-            return Path(__file__).parent.parent.joinpath("database").resolve()
+        return Path(__file__).parent.parent.parent.resolve()
 
     @staticmethod
-    def get_observables_file_path(filename: str = "observables.json") -> Path:
-        return Env.base_path() / filename
-
-    @staticmethod
-    def get_events_file_path(filename: str = "events.json") -> Path:
-        return Env.base_path() / filename
-
-    @staticmethod
-    def get_scripts_dir() -> Path:
+    def get_data_dir() -> Path:
+        """
+        Return the path to the data directory, creating it if it doesn't exist.
+        - In a PyInstaller bundle: uses 'data'
+        - In normal Python: uses 'infrastructure/database/dev'
+        """
         if getattr(sys, "frozen", False):
-            # Running in a PyInstaller bundle
-            scripts_path = Path(sys.executable).parent.joinpath("scripts").resolve()
+            data_path = Env.base_dir().joinpath("data").resolve()
         else:
-            # Running in normal Python environment
-            scripts_path = Path(__file__).parent.parent.parent.joinpath("scripts").resolve()
+            data_path = Env.base_dir().joinpath("infrastructure", "database", "dev").resolve()
 
-        # Ensure the directory exists
-        scripts_path.mkdir(parents=True, exist_ok=True)
-        return scripts_path
+        data_path.mkdir(parents=True, exist_ok=True)
+        return data_path
 
     @staticmethod
     def get_window() -> dict:

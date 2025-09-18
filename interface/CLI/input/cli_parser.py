@@ -9,5 +9,7 @@ class CLIParser:
         return {
             "help"                  : CLIHelpCommand,
             "gui"                   : LaunchGUICommand,
+            "new-test"              : NewTestCommand,
+            "new-sim"               : NewSimulationCommand,
 
         }[command_name](args)
