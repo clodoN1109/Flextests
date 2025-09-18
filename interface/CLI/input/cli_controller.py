@@ -1,4 +1,3 @@
-from domain.test import Test
 from interface.CLI.input.cli_parser import CLIParser
 from interface.CLI.input.commands import *
 from application.app import App
@@ -29,8 +28,21 @@ class CLIController:
         if isinstance(cmd, NewSimulationCommand):
             self.app.new_simulation(cmd.simulation_name, cmd.script_path, cmd.description)
 
+        if isinstance(cmd, SetSimulationCommand):
+            self.app.set_simulation(cmd.test_name, cmd.simulation_name)
+
+        if isinstance(cmd, RunSimulationCommand):
+            results = self.app.run_simulation(cmd.simulation_name)
+            self.presenter.text_block(results)
+
         if isinstance(cmd, NewTestCommand):
             self.app.new_test(cmd.test_name, cmd.description)
+
+        if isinstance(cmd, SetReferencesCommand):
+            if cmd.reference_source is None:
+                self.app.set_references_from_simulation(cmd.test_name, cmd.number_of_references)
+            else:
+                self.app.set_references_from_source(cmd.reference_source)
 
         self._update_repository()
 

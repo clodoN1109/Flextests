@@ -11,5 +11,9 @@ class CLIParser:
             "gui"                   : LaunchGUICommand,
             "new-test"              : NewTestCommand,
             "new-sim"               : NewSimulationCommand,
+            "set-sim"               : SetSimulationCommand,
+            "run-sim"               : RunSimulationCommand,
+            "set-ref"               : SetReferencesCommand,
+
 
         }[command_name](args)

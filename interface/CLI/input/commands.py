@@ -60,3 +60,86 @@ class NewSimulationCommand(Command):
         cls.simulation_name = args[0]
         cls.script_path     = args[1]
         cls.description     = args[2]
+
+@dataclass
+class SetSimulationCommand(Command):
+
+    @classmethod
+    def command_name(cls) -> str:
+        return "set-sim"
+
+    @classmethod
+    def __init__(cls, args: list[str]):
+        cls.name = cls.command_name()
+        cls.args = args
+        cls.test_name       = args[0]
+        cls.simulation_name = args[1]
+
+@dataclass
+class RunSimulationCommand(Command):
+
+    @classmethod
+    def command_name(cls) -> str:
+        return "run-sim"
+
+    @classmethod
+    def __init__(cls, args: list[str]):
+        cls.name = cls.command_name()
+        cls.args = args
+        cls.simulation_name = args[0]
+
+@dataclass
+class SetReferencesCommand(Command):
+    # -----------------------------------------------------------------------------
+    # Test reference source (reference_source):
+    #
+    # The `reference_source` argument must point to either a URL or a local json or script file path
+    # that provides a JSON list of reference elements. Each element must be a JSON
+    # object with the following structure:
+    #
+    # {
+    #     "result": "string representing expected outcome",
+    #     "parameters": {
+    #         "param_name_1": "param_value_1",
+    #         "param_name_2": "param_value_2",
+    #         ...
+    #     }
+    # }
+    #
+    # Example:
+    # [
+    #     {
+    #         "result": "result_1",
+    #         "parameters": {
+    #             "x": "3",
+    #             "y": "25",
+    #             "z": "150"
+    #         }
+    #     },
+    #     {
+    #         "result": "result_2",
+    #         "parameters": {
+    #             "x": "5",
+    #             "y": "28",
+    #             "z": "180"
+    #         }
+    #     }
+    # ]
+    #
+    # Each object in the list will be used to build a TestReference:
+    #   - `result` maps to TestReference.result
+    #   - `parameters` maps to TestReference.parameters
+    # This allows automated evaluation of simulation results against known references.
+    # -----------------------------------------------------------------------------
+
+    @classmethod
+    def command_name(cls) -> str:
+        return "set-ref"
+
+    @classmethod
+    def __init__(cls, args: list[str]):
+        cls.name = cls.command_name()
+        cls.args = args
+        cls.test_name            = args[0]
+        cls.reference_source     = args[1] if len(args) > 1 else None
+        cls.number_of_references = args[2] if len(args) > 2 else 5
