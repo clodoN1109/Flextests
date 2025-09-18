@@ -13,4 +13,4 @@ class Router:
         command = preprocessed_args[0]
         args = preprocessed_args[1:]
 
-        CLIController.execute(command, args)
+        CLIController().execute(command, args)
