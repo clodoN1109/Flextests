@@ -4,7 +4,7 @@ from domain.simulation import Simulation
 from domain.test import Test
 
 
-class IJsonRepository(ABC):
+class IRepository(ABC):
 
     @abstractmethod
     def save_new_simulation(self, new_sim: Simulation) -> None:

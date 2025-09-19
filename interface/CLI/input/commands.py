@@ -89,11 +89,41 @@ class RunSimulationCommand(Command):
         cls.simulation_name = args[0]
 
 @dataclass
+class RunTestCommand(Command):
+
+    @classmethod
+    def command_name(cls) -> str:
+        return "run-test"
+
+    @classmethod
+    def __init__(cls, args: list[str]):
+        cls.name = cls.command_name()
+        cls.args = args
+        cls.test_name = args[0]
+        cls.repetitions = int(args[1]) if len(args)>1 else 1
+
+
+@dataclass
+class SetCriterionCommand(Command):
+
+    @classmethod
+    def command_name(cls) -> str:
+        return "set-criterion"
+
+    @classmethod
+    def __init__(cls, args: list[str]):
+        cls.name = cls.command_name()
+        cls.args = args
+        cls.test_name       = args[0]
+        cls.criterion_name  = args[1]
+        cls.criterion_value = args[2]
+
+@dataclass
 class SetReferencesCommand(Command):
     # -----------------------------------------------------------------------------
     # Test reference source (reference_source):
     #
-    # The `reference_source` argument must point to either a URL or a local json or script file path
+    # The `reference_source` argument must point to either a URL or a local json
     # that provides a JSON list of reference elements. Each element must be a JSON
     # object with the following structure:
     #
@@ -142,4 +172,4 @@ class SetReferencesCommand(Command):
         cls.args = args
         cls.test_name            = args[0]
         cls.reference_source     = args[1] if len(args) > 1 else None
-        cls.number_of_references = args[2] if len(args) > 2 else 5
+        cls.number_of_references = int(args[2]) if len(args) > 2 else 5

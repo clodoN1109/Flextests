@@ -1,14 +1,14 @@
 import json
 from pathlib import Path
 from typing import Optional
-from application.ports.i_repository import IJsonRepository
+from application.ports.i_repository import IRepository
 from domain.simulation import Simulation
 from domain.test import Test, TestCriteria
 from domain.test_reference import TestReference
 from infrastructure.environment.environment import Env
 
 
-class JsonRepository(IJsonRepository):
+class Repository(IRepository):
     """Concrete repository for persisting simulations and tests into JSON files."""
 
     def __init__(self):
@@ -59,6 +59,7 @@ class JsonRepository(IJsonRepository):
                 "duration": test.criteria.duration,
                 "max_memory": test.criteria.max_memory,
                 "mean_memory": test.criteria.mean_memory,
+                "compliance_rate": test.criteria.compliance_rate,
             } if test.criteria else None,
             "references": [
                 {
@@ -98,6 +99,7 @@ class JsonRepository(IJsonRepository):
                         duration=crit_data.get("duration"),
                         max_memory=crit_data.get("max_memory"),
                         mean_memory=crit_data.get("mean_memory"),
+                        compliance_rate=crit_data.get("compliance_rate"),
                     )
                     if crit_data
                     else None

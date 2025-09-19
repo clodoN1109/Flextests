@@ -13,8 +13,10 @@ class Test:
         self.criteria: TestCriteria | None = None
         self.references: list[TestReference] | None = None
         self.results: list[TestResult] = []
+        self.stats: TestStats | None = None
+        self.final_result: str | None = None
 
-    def execute(self, times: int) -> "TestStats":
+    def execute(self, times: int):
         """Run the simulation multiple times and evaluate results."""
         if not self.simulation:
             raise RuntimeError("No simulation assigned to this test")
@@ -27,7 +29,12 @@ class Test:
             self.evaluate(sim_result, self.criteria, self.references)
             for sim_result in sim_results
         ]
-        return TestStats.from_results(self.results)
+        self.stats = TestStats.from_results(self.results)
+        compliance_rate = self.stats.effective_and_efficient/self.stats.total
+        if compliance_rate < self.criteria.compliance_rate:
+            self.final_result = "failed"
+        else:
+            self.final_result = "passed"
 
     def get_results(self) -> list["TestResult"]:
         """Return the list of test results."""
@@ -84,7 +91,44 @@ class Test:
 
         return result
 
+    def report(self) -> str:
+        indent = "    "
 
+        # Criteria formatting
+        if self.criteria:
+            criteria_lines = [
+                f"{indent}- duration       : {self.criteria.duration}",
+                f"{indent}- max_memory     : {self.criteria.max_memory}",
+                f"{indent}- mean_memory    : {self.criteria.mean_memory}",
+                f"{indent}- compliance_rate: {self.criteria.compliance_rate}",
+            ]
+            criteria_str = "\n".join(criteria_lines)
+        else:
+            criteria_str = f"{indent}(no criteria)"
+
+        # Stats formatting
+        if self.stats:
+            stats_lines = [
+                f"{indent}- effective             : {self.stats.effective}",
+                f"{indent}- efficient             : {self.stats.efficient}",
+                f"{indent}- effective & efficient : {self.stats.effective_and_efficient}",
+                f"{indent}- total                 : {self.stats.total}",
+                f"{indent}- compliance rate       : {self.stats.compliance_rate}",
+            ]
+            stats_str = "\n".join(stats_lines)
+        else:
+            stats_str = f"{indent}(no stats)"
+
+        return (
+            f"Test: {self.name}\n"
+            f"Description:\n{indent}{self.description or '(none)'}\n"
+            f"Criteria:\n{criteria_str}\n"
+            f"Stats:\n{stats_str}\n"
+            f"Final Result:\n{indent}{self.final_result or '(not set)'}"
+        )
+
+    def __repr__(self):
+        return self.report()
 
 
 
