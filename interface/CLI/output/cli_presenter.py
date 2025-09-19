@@ -1,5 +1,5 @@
 class CLIPresenter:
 
     @staticmethod
-    def text_block(text: str):
-        print(text)
+    def text_block(text: object) -> None:
+        print(f"\n{text}")

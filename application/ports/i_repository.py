@@ -5,6 +5,7 @@ from domain.test import Test
 
 
 class IJsonRepository(ABC):
+
     @abstractmethod
     def save_new_simulation(self, new_sim: Simulation) -> None:
         """Persist a new Simulation (only metadata, not results)."""
@@ -16,11 +17,19 @@ class IJsonRepository(ABC):
         pass
 
     @abstractmethod
-    def save_new_test(self, test: Test) -> None:
+    def save_test(self, test: Test) -> None:
         """Persist a new Test (with simulation reference and criteria)."""
         pass
 
     @abstractmethod
     def get_test_by_name(self, name: str) -> Optional[Test]:
         """Retrieve a Test by name, or None if not found."""
+        pass
+
+    @abstractmethod
+    def update_test(self, test: "Test") -> None:
+        pass
+
+    @abstractmethod
+    def remove_test(self, test: "Test") -> None:
         pass

@@ -11,8 +11,14 @@ class SimulationStats:
         self.min_memory = min_memory
         self.mean_memory = mean_memory
 
-
-
+    def __repr__(self) -> str:
+        return (
+            f"SimulationStats:"
+            f"\n\t\t  Duration: {self.duration:.4f}s"
+            f"\n\t\t  Min Memory: {self.min_memory:.2f}MB"
+            f"\n\t\t  Max Memory: {self.max_memory:.2f}MB"
+            f"\n\t\t  Mean Memory: {self.mean_memory:.2f}MB"
+        )
 
 
 

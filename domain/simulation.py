@@ -1,16 +1,35 @@
-import json
-from typing import List
+from domain.simulation_result import SimulationResult
+from domain.simulation_statistics import SimulationStats
 import os
 import sys
 import time
+import json
 import shutil
 import psutil
 import subprocess
-from domain.simulation_output import SimulationOutput
-from domain.simulation_result import SimulationResult
-from domain.simulation_statistics import SimulationStats
+from typing import List
 
 class Simulation:
+    # -----------------------------------------------------------------------------
+    # Simulation script JSON output format:
+    #
+    # Each simulation script must print a JSON object with exactly two keys:
+    #   1. "result"     → a string representing the main outcome of the simulation
+    #   2. "parameters" → a dictionary of parameter names (strings) and their
+    #                      corresponding values (strings) used in this simulation
+    #
+    # Example of valid output:
+    # {
+    #     "result": "result_3",
+    #     "parameters": {
+    #         "x": "7",
+    #         "y": "25",
+    #         "z": "150"
+    #     }
+    # }
+    #
+    # The program will parse this JSON to create a SimulationResult object.
+    # -----------------------------------------------------------------------------
     def __init__(self, name: str, script_path: str, description: str = ""):
         self.name = name
         self.script_path = script_path
@@ -79,7 +98,7 @@ class Simulation:
         if proc.returncode != 0:
             raise RuntimeError(f"Script failed with exit code {proc.returncode}:\n{stderr}")
 
-        # Compute stats
+        # --- compute stats ---
         if mem_samples:
             min_mem = min(mem_samples)
             max_mem = max(mem_samples)
@@ -94,30 +113,39 @@ class Simulation:
             mean_memory=mean_mem,
         )
 
-        # If capturing, wrap stdout into SimulationOutput
-        output = None
+        # --- parse output into result + parameters ---
+        result = ""
+        parameters: dict[str, str] = {}
+
         if capture_output and stdout:
             text = stdout.strip()
-            # --- case 1: key=value format ---
-            if "=" in text and not text.startswith("{"):
-                key, value = text.split("=", 1)
-                output = SimulationOutput(key.strip(), value.strip())
+            try:
+                data = json.loads(text)
+                if not isinstance(data, dict):
+                    raise ValueError("JSON output must be an object")
 
-            # --- case 2: JSON format (single key-value) ---
-            else:
-                try:
-                    data = json.loads(text)
-                    if not isinstance(data, dict) or len(data) != 1:
-                        raise ValueError("JSON output must be an object with exactly one key-value pair")
+                # --- new expected format ---
+                if "result" in data and "parameters" in data:
+                    result = str(data["result"]).strip()
+                    if not isinstance(data["parameters"], dict):
+                        raise ValueError("'parameters' must be a dictionary")
+                    parameters = {str(k): str(v) for k, v in data["parameters"].items()}
+                # --- fallback: single key=value pair ---
+                elif len(data) == 1:
                     key, value = next(iter(data.items()))
-                    output = SimulationOutput(str(key).strip(), str(value).strip())
-                except json.JSONDecodeError as e:
+                    result = str(value).strip()
+                    parameters = {str(key).strip(): str(value).strip()}
+                else:
                     raise ValueError(
-                        f"Expected 'key=value' or single-pair JSON format in script output, got: {text}"
-                    ) from e
+                        "JSON output must be either {'result':..., 'parameters': {...}} or a single key-value pair"
+                    )
 
-        return SimulationResult(stats=stats, output=output)
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"Expected JSON output, got: {text}"
+                ) from e
 
+        return SimulationResult(stats=stats, result=result, parameters=parameters)
 
 
 

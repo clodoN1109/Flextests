@@ -4,6 +4,7 @@ from typing import Optional
 from application.ports.i_repository import IJsonRepository
 from domain.simulation import Simulation
 from domain.test import Test, TestCriteria
+from domain.test_reference import TestReference
 from infrastructure.environment.environment import Env
 
 
@@ -44,7 +45,7 @@ class JsonRepository(IJsonRepository):
 
     # ---------------- Tests ----------------
 
-    def save_new_test(self, test: Test) -> None:
+    def save_test(self, test: Test) -> None:
         """Save a Test with its simulation reference, criteria, and references."""
         test_entry = {
             "name": test.name,
@@ -59,9 +60,13 @@ class JsonRepository(IJsonRepository):
                 "max_memory": test.criteria.max_memory,
                 "mean_memory": test.criteria.mean_memory,
             } if test.criteria else None,
-            "references": (
-                test.references.values if test.references else None
-            ),
+            "references": [
+                {
+                    "parameters": ref.parameters,
+                    "result": ref.result,
+                }
+                for ref in (test.references or [])
+            ],
         }
 
         data = self._load_json(self.test_file)
@@ -69,7 +74,7 @@ class JsonRepository(IJsonRepository):
         self._save_json(self.test_file, data)
 
     def get_test_by_name(self, name: str) -> Optional[Test]:
-        """Retrieve a Test by name, rebuilding Simulation, TestCriteria, and TestReferences if present."""
+        """Retrieve a Test by name, rebuilding Simulation, TestCriteria, and TestReference list if present."""
         data = self._load_json(self.test_file)
 
         for entry in data:
@@ -99,8 +104,14 @@ class JsonRepository(IJsonRepository):
                 )
 
                 # --- rebuild TestReferences ---
-                ref_data = entry.get("references")
-                references = TestReferences(ref_data) if ref_data else None
+                ref_data = entry.get("references", [])
+                references = [
+                    TestReference(
+                        parameters=ref.get("parameters", {}),
+                        result=ref.get("result", None),
+                    )
+                    for ref in ref_data
+                ]
 
                 # --- assemble Test ---
                 test = Test(
@@ -113,6 +124,29 @@ class JsonRepository(IJsonRepository):
                 return test
 
         return None
+
+    def update_test(self, test: "Test") -> None:
+        """Update an existing test by removing the old entry and saving the new one."""
+        data = self._load_json(self.test_file)
+        # Remove any existing entry with the same name
+        new_data = [entry for entry in data if entry.get("name") != test.name]
+
+        if len(new_data) == len(data):
+            raise ValueError(f"Test with name '{test.name}' not found for update.")
+
+        # Save the updated test using the existing save_test logic
+        self._save_json(self.test_file, new_data)  # first save the data without the old test
+        self.save_test(test)  # now append the updated test
+
+    def remove_test(self, test: "Test") -> None:
+        """Remove a test entry by its name."""
+        data = self._load_json(self.test_file)
+        new_data = [entry for entry in data if entry.get("name") != test.name]
+
+        if len(new_data) == len(data):
+            raise ValueError(f"Test with name '{test.name}' not found for removal.")
+
+        self._save_json(self.test_file, new_data)
 
     # ---------------- Helpers ----------------
 
