@@ -14,6 +14,8 @@ class CLIParser:
             "set-sim"               : SetSimulationCommand,
             "run-sim"               : RunSimulationCommand,
             "set-ref"               : SetReferencesCommand,
+            "set-criterion"         : SetCriterionCommand,
+            "run-test"              : RunTestCommand,
 
 
         }[command_name](args)

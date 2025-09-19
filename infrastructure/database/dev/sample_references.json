@@ -1,0 +1,42 @@
+[
+  {
+  "parameters": {
+          "x": "7",
+          "y": "26",
+          "z": "130"
+      },
+      "result": "result_4"
+  },
+  {
+      "parameters": {
+          "x": "2",
+          "y": "21",
+          "z": "180"
+      },
+      "result": "result_4"
+  },
+  {
+      "parameters": {
+          "x": "10",
+          "y": "26",
+          "z": "168"
+      },
+      "result": "result_3"
+  },
+  {
+      "parameters": {
+          "x": "3",
+          "y": "26",
+          "z": "123"
+      },
+      "result": "result_1"
+  },
+  {
+      "parameters": {
+          "x": "8",
+          "y": "20",
+          "z": "186"
+      },
+      "result": "result_5"
+  }
+]
