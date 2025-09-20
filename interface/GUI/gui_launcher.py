@@ -16,7 +16,7 @@ class GUI:
         self.app = app
         self.settings = settings
         self.root = Tk()
-        self.style = GUIStyle('dark', self.root)
+        self.style = GUIStyle('dark')
 
     def launch(self) -> None:
         GUIRenderer(self).render()

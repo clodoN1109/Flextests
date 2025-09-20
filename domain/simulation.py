@@ -40,6 +40,11 @@ class Simulation:
         result: SimulationResult = self._run_script(self.script_path, True)
         self.results.append(result)
 
+    def get_plot_data(self, stats_name: str):
+        stats = [result.stats for result in self.results if result.stats is not None]
+        selected_stats_var = [getattr(item, stats_name) for item in stats if hasattr(item, stats_name)]
+        return selected_stats_var
+
     @staticmethod
     def _run_script(script_path: str, capture_output: bool) -> SimulationResult:
         ext = os.path.splitext(script_path)[1].lower()

@@ -1,10 +1,10 @@
 from tkinter import ttk
 import tkinter as tk
 
+
 class GUIStyle:
 
-    def __init__(self, style: str = "dark", window: tk.Tk = None) -> None:
-        self.window = window
+    def __init__(self, style: str = "dark") -> None:
         self.prefix = None
 
         self.footer_bg = None
@@ -58,15 +58,14 @@ class GUIStyle:
         else:
             raise ValueError(f"Unknown style mode: {style}")
 
-    def toggle_dark_mode(self):
+    def toggle_dark_mode(self, window):
         if self.prefix == "dark":
             self.select_style("light")
         else: self.select_style("dark")
-        self.apply_style()
+        self.apply_style(window)
 
-    def apply_style(self):
-        if not self.window:
-            return
+    def apply_style(self, window):
+        tk_root = window.tk
 
         def _apply(widget):
             # Background and foreground colors
@@ -91,10 +90,10 @@ class GUIStyle:
                 _apply(child)
 
         # Start recursive application from root
-        _apply(self.window)
+        _apply(tk_root)
 
         # Update ttk global styles via Style object
-        style = ttk.Style(self.window)
+        style = ttk.Style(tk_root)
         style.theme_use("default")
 
         style.configure("TFrame", background=self.primary_bg)
@@ -106,8 +105,15 @@ class GUIStyle:
         style.configure("TEntry", fieldbackground=self.text_bg, foreground=self.text_fg)
 
         # Update specific tk elements
-        self.window.title_separator.configure(bg=self.separator_bg)
+        tk_root.title_separator.configure(bg=self.separator_bg)
+        window.panes.paned_window.configure(bg=self.separator_bg)
+        window.panes.left_pane.controller_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.left_pane.controller_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.left_pane.configurations_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.left_pane.configurations_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.left_pane.statistics_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.left_pane.statistics_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
 
-        self.window.update_idletasks()
+        tk_root.update_idletasks()
 
 

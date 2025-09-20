@@ -1,6 +1,5 @@
 from tkinter import ttk
 import tkinter as tk
-
 from infrastructure.environment.environment import Env
 from interface.GUI.components.button import Button
 from interface.GUI.gui_styles import GUIStyle
@@ -8,23 +7,26 @@ from interface.GUI.gui_styles import GUIStyle
 
 class TitleBar:
 
-    def __init__(self, window, style: GUIStyle):
+    def __init__(self, window_tk, style: GUIStyle, window):
         self.window = window
+        self.window_tk = window_tk
         self.style = style
+        self._is_maximized = False
+        self._is_transparent = False
 
     def render(self):
         # Title bar frame
-        title_bar = ttk.Frame(self.window.tk)
+        title_bar = ttk.Frame(self.window_tk)
         title_bar.pack(fill="x")
 
         icon_path = f"{Env.get_script_path()}/../assets/icons/logo_{self.style.prefix}_96px.png"
         self.set_logo_image(title_bar, icon_path)
 
         # Title text (align left)s
-        self.window.tk.title_label = ttk.Label(
+        self.window_tk.title_label = ttk.Label(
             title_bar, text="", anchor="w", font=("Courier", 10, "italic")
         )
-        self.window.tk.title_label.pack(side="left", padx=5)
+        self.window_tk.title_label.pack(side="left", padx=5)
 
         # Control buttons
         btn_frame = ttk.Frame(title_bar)
@@ -37,63 +39,64 @@ class TitleBar:
         Button().add_button(btn_frame, "☽/☀", self.toggle_dark_mode, 10)
         Button().add_button(btn_frame, "🗕", self._minimize, 10)
         Button().add_button(btn_frame, "🗖", self._toggle_maximize, 10)
-        Button().add_button(btn_frame, "✕", self.window.tk.destroy, 10)
+        Button().add_button(btn_frame, "✕", self.window_tk.destroy, 10)
 
-        self.window.tk.title_separator = tk.Frame(
-            self.window.tk,
+        self.window_tk.title_separator = tk.Frame(
+            self.window_tk,
             height=5,
             bd=0,
             bg="#ff0000"  # plain tk Frame uses bg reliably
         )
-        self.window.tk.title_separator.pack(fill="x", side="top")
+        self.window_tk.title_separator.pack(fill="x", side="top")
 
         # Enable dragging by clicking the title area
         def start_move(event):
-            self.window.tk._x = event.x
-            self.window.tk._y = event.y
+            self.window_tk._x = event.x
+            self.window_tk._y = event.y
 
         def on_move(event):
-            x = self.window.tk.winfo_pointerx() - self.window.tk._x
-            y = self.window.tk.winfo_pointery() - self.window.tk._y
-            self.window.tk.geometry(f"+{x}+{y}")
+            x = self.window_tk.winfo_pointerx() - self.window_tk._x
+            y = self.window_tk.winfo_pointery() - self.window_tk._y
+            self.window_tk.geometry(f"+{x}+{y}")
 
         # Bind dragging to both the title label and the icon (if present)
         title_bar.bind("<Button-1>", start_move)
         title_bar.bind("<B1-Motion>", on_move)
-        self.window.tk.title_label.bind("<Button-1>", start_move)
-        self.window.tk.title_label.bind("<B1-Motion>", on_move)
+        self.window_tk.title_label.bind("<Button-1>", start_move)
+        self.window_tk.title_label.bind("<B1-Motion>", on_move)
         if icon_path:
             self.icon_label.bind("<Button-1>", start_move)
             self.icon_label.bind("<B1-Motion>", on_move)
 
+        return self
 
     def _minimize(self):
-        self.window.tk.update_idletasks()
+        self.window_tk.update_idletasks()
         # Enables the OS window management before calling iconify.
-        self.window.tk.overrideredirect(False)
-        self.window.tk.iconify()
+        self.window_tk.overrideredirect(False)
+        self.window_tk.iconify()
 
 
     def _toggle_transparency(self):
-        if self.window._is_transparent:
-            self.window.tk.attributes("-alpha", 1)
-            self.window._is_transparent = False
+        if self._is_transparent:
+            self.window_tk.attributes("-alpha", 1)
+            self._is_transparent = False
         else:
-            self.window.tk.attributes("-alpha", 0.9)
-            self.window._is_transparent = True
+            self.window_tk.attributes("-alpha", 0.9)
+            self._is_transparent = True
 
 
     def _toggle_maximize(self):
-        if self.window._is_maximized:
-            self.window.tk.geometry(self.window.tk._restore_geometry)
-            self.window._is_maximized = False
+        if self._is_maximized:
+            self.window_tk.geometry(self.window_tk._restore_geometry)
+            self._is_maximized = False
         else:
-            self.window.tk._restore_geometry = self.window.tk.geometry()
-            self.window.tk.geometry(f"{self.window.tk.winfo_screenwidth()}x{self.window.tk.winfo_screenheight()}+0+0")
-            self.window._is_maximized = True
+            self.window_tk._restore_geometry = self.window_tk.geometry()
+            self.window_tk.geometry(f"{self.window_tk.winfo_screenwidth()}x{self.window_tk.winfo_screenheight()}+0+0")
+            self._is_maximized = True
 
     def toggle_dark_mode(self):
-        self.style.toggle_dark_mode()
+        self.style.toggle_dark_mode(self.window)
         self.update_logo_image()
 
     def set_logo_image(self, frame, icon_path):

@@ -44,7 +44,7 @@ class NewTestCommand(Command):
         cls.name = cls.command_name()
         cls.args = args
         cls.test_name = args[0]
-        cls.description = args[1]
+        cls.description = args[1] if len(args) > 1 else ""
 
 @dataclass
 class NewSimulationCommand(Command):
@@ -59,7 +59,7 @@ class NewSimulationCommand(Command):
         cls.args = args
         cls.simulation_name = args[0]
         cls.script_path     = args[1]
-        cls.description     = args[2]
+        cls.description     = args[2] if len(args) > 2 else ""
 
 @dataclass
 class SetSimulationCommand(Command):

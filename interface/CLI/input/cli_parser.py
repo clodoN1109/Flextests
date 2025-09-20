@@ -17,5 +17,4 @@ class CLIParser:
             "set-criterion"         : SetCriterionCommand,
             "run-test"              : RunTestCommand,
 
-
         }[command_name](args)
