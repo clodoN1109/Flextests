@@ -1,3 +1,4 @@
+from interface.CLI.input.cli_help import CLIHelp
 from interface.CLI.input.cli_parser import CLIParser
 from interface.CLI.input.commands import *
 from application.app import App
@@ -17,7 +18,7 @@ class CLIController:
         cmd = CLIParser.parse_as_command(command_name, options)
 
         if isinstance(cmd, CLIHelpCommand):
-            cli_help_instructions = self.app.cli_help()
+            cli_help_instructions = CLIHelp.cli_help()
             self.presenter.text_block(cli_help_instructions)
 
         if isinstance(cmd, LaunchGUICommand):

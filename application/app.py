@@ -62,26 +62,7 @@ class App:
     def run_test(self, test_name: str, number_of_repetitions: int):
         selected_test = self.repository.get_test_by_name(test_name)
         selected_test.execute(number_of_repetitions)
+
+        print(selected_test.simulation.get_plot_data("duration"))
+
         return selected_test.report()
-
-    @staticmethod
-    def cli_help() -> str:
-        """Prints an organized description of how to use the CLI interface."""
-
-        help_text = """
-=====================================================
-                FLEXTESTS CLI HELP
-=====================================================
-
-Available Commands:
-
-
-- help
-   - Displays this help message.
-   
--gui
-    - Launches the GUI.
-
-=====================================================
-    """
-        return help_text
