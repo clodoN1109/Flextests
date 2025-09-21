@@ -98,22 +98,33 @@ class GUIStyle:
 
         style.configure("TFrame", background=self.primary_bg)
         style.configure("TLabel", background=self.primary_bg, foreground=self.primary_fg)
-        style.configure("TButton", background=self.accent_bg, foreground=self.primary_fg)
-        style.map("TButton",
-                  background=[("active", self.accent_hover)],
-                  foreground=[("disabled", "#888888")])
+
+        # 🔹 Button styling with vertical padding
+        style.configure(
+            "TButton",
+            background=self.accent_bg,
+            foreground=self.primary_fg,
+            padding=(4, 2)  # (horizontal, vertical) → adjust vertical to match combobox
+        )
+        style.map(
+            "TButton",
+            background=[("active", self.accent_hover)],
+            foreground=[("disabled", "#888888")]
+        )
+
         style.configure("TEntry", fieldbackground=self.text_bg, foreground=self.text_fg)
 
         # Update specific tk elements
         tk_root.title_separator.configure(bg=self.separator_bg)
         window.panes.paned_window.configure(bg=self.separator_bg)
-        window.panes.left_pane.controller_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
-        window.panes.left_pane.controller_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
-        window.panes.left_pane.configurations_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
-        window.panes.left_pane.configurations_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
-        window.panes.left_pane.statistics_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
-        window.panes.left_pane.statistics_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.input_pane.controller_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.input_pane.controller_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.input_pane.configurations_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.input_pane.configurations_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.input_pane.statistics_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
+        window.panes.input_pane.statistics_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
 
         tk_root.update_idletasks()
+
 
 

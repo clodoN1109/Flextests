@@ -7,7 +7,7 @@ from interface.GUI.components.window import Window
 class GUIRenderer:
 
     def __init__(self, gui):
-        self.window = None
+        self.window: Window = None
         self.gui    = gui
         self.root   = gui.root
         self.app    = gui.app
@@ -18,6 +18,14 @@ class GUIRenderer:
     def render(self):
         self.window = Window(self.root, self.style, self.app).render("flextests", 1000, 600)
         self.style.apply_style(self.window)
+        self.update_state()
+
+    def update_state(self):
+        def update_controller_section():
+            test_names_list = [test.name for test in self.app.get_tests_list()]
+            self.window.panes.input_pane.test_selector.combobox.configure(values=test_names_list)
+            print(self.window.panes.input_pane.test_selector.var.get())
+        update_controller_section()
 
     def config_os_window_navbar(self):
         self.root.iconphoto(False, tk.PhotoImage(file=f"{Env.get_script_path()}/assets/icons/icon.png"))

@@ -22,7 +22,7 @@ class SectionTitle:
             text="▼",
             anchor="w",
             cursor="hand2",
-            fg="white"  # optional for contrast
+            fg="white"
         )
         self.arrow_label.pack(side="left")
 
@@ -33,6 +33,10 @@ class SectionTitle:
             anchor="center",
         )
         self.title_label.pack(side="left", fill="x", expand=True)
+
+        # Pack target frame immediately if visible
+        if self.target_frame is not None and self.is_visible:
+            self.target_frame.pack(fill="x", padx=10, pady=(0, 10))
 
         # Bind both labels to toggle
         self.arrow_label.bind("<Button-1>", self.toggle)
@@ -47,7 +51,12 @@ class SectionTitle:
             self.arrow_label.config(text="▶")
         else:
             if self.target_frame is not None:
-                self.target_frame.pack(fill="x", padx=10, pady=(0, 10))
+                # Pack the frame just after the title bar frame
+                self.target_frame.pack(
+                    fill="x", padx=10, pady=(0, 10),
+                    before=self.frame.master.winfo_children()[self.frame.master.winfo_children().index(self.frame) + 1]
+                )
             self.arrow_label.config(text="▼")
 
         self.is_visible = not self.is_visible
+

@@ -36,8 +36,8 @@ class Simulation:
         self.description = description
         self.results: List[SimulationResult] = []
 
-    def run(self):
-        result: SimulationResult = self._run_script(self.script_path, True)
+    def run(self, iteration:int = 1):
+        result: SimulationResult = self._run_script(self.script_path, True, iteration=iteration)
         self.results.append(result)
 
     def get_plot_data(self, stats_name: str):
@@ -46,9 +46,10 @@ class Simulation:
         return selected_stats_var
 
     @staticmethod
-    def _run_script(script_path: str, capture_output: bool) -> SimulationResult:
+    def _run_script(script_path: str, capture_output: bool, **params) -> "SimulationResult":
         ext = os.path.splitext(script_path)[1].lower()
 
+        # Find Python interpreter if frozen
         if getattr(sys, "frozen", False):
             python_exec = shutil.which("python") or shutil.which("python3")
             if not python_exec:
@@ -75,8 +76,11 @@ class Simulation:
                 raise RuntimeError(f"Interpreter not found: {cmd[0]}")
             cmdline = cmd + [script_path]
 
-        start = time.perf_counter()
+        # Normalize args
+        args = Simulation._format_args(ext, params)
+        cmdline = cmdline + args
 
+        start = time.perf_counter()
         proc = subprocess.Popen(
             cmdline,
             stdout=subprocess.PIPE if capture_output else None,
@@ -152,6 +156,35 @@ class Simulation:
 
         return SimulationResult(stats=stats, result=result, parameters=parameters)
 
+    @staticmethod
+    def _format_args(ext: str, params: dict) -> list[str]:
+        """
+        Normalize argument syntax depending on script type.
+        """
+        if not params:
+            return []
 
+        if ext in (".py", ".rb"):
+            # Python & Ruby => --flag value
+            args = []
+            for k, v in params.items():
+                args.append(f"--{k}")
+                args.append(str(v))
+            return args
+
+        elif ext == ".ps1":
+            # PowerShell => -Flag value
+            args = []
+            for k, v in params.items():
+                args.append(f"-{k}")
+                args.append(str(v))
+            return args
+
+        elif ext in (".sh", ".bat"):
+            # Shell & Batch => positional arguments
+            return [str(v) for v in params.values()]
+
+        else:
+            raise RuntimeError(f"Unsupported script type: {ext}")
 
 

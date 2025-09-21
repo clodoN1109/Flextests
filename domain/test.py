@@ -21,8 +21,8 @@ class Test:
         if not self.simulation:
             raise RuntimeError("No simulation assigned to this test")
 
-        for _ in range(times):
-            self.simulation.run()
+        for i in range(times):
+            self.simulation.run(i)
 
         sim_results: list[SimulationResult] = self.simulation.results
         self.results = [
@@ -89,6 +89,7 @@ class Test:
         else:
             result.efficiency = "passed"  # no criteria → auto-pass
 
+        result.simulation = sim_result
         return result
 
     def report(self) -> str:

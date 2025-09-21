@@ -47,6 +47,18 @@ class NewTestCommand(Command):
         cls.description = args[1] if len(args) > 1 else ""
 
 @dataclass
+class ListTestsCommand(Command):
+
+    @classmethod
+    def command_name(cls) -> str:
+        return "list-tests"
+
+    @classmethod
+    def __init__(cls, args: list[str]):
+        cls.name = cls.command_name()
+        cls.args = args
+
+@dataclass
 class NewSimulationCommand(Command):
 
     @classmethod
@@ -170,6 +182,9 @@ class SetReferencesCommand(Command):
     def __init__(cls, args: list[str]):
         cls.name = cls.command_name()
         cls.args = args
-        cls.test_name            = args[0]
-        cls.reference_source     = args[1] if len(args) > 1 else None
-        cls.number_of_references = int(args[2]) if len(args) > 2 else 5
+        cls.test_name                 = args[0]
+        cls.reference_source          = args[1]       if len(args) > 1 else None
+        cls.number_of_runs            = int(args[2])  if len(args) > 2 else 5
+        cls.scalability_case          = bool(args[3]) if len(args) > 3 else False
+        cls.domain_scalability_order  = args[4]       if len(args) > 4 else "polynomial"
+        cls.domain_size               = int(args[5])  if len(args) > 5 else 1

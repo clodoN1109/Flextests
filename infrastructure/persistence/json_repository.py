@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from application.ports.i_repository import IRepository
 from domain.simulation import Simulation
 from domain.test import Test, TestCriteria
@@ -73,6 +73,60 @@ class Repository(IRepository):
         data = self._load_json(self.test_file)
         data.append(test_entry)
         self._save_json(self.test_file, data)
+
+    def get_all_tests(self) -> List[Test]:
+        """Retrieve all tests, rebuilding Simulation, TestCriteria, and TestReference list if present."""
+        data = self._load_json(self.test_file)
+        all_tests: List[Test] = []
+
+        for entry in data:
+            # --- rebuild Simulation ---
+            sim_data = entry.get("simulation")
+            simulation = (
+                Simulation(
+                    name=sim_data["name"],
+                    script_path=sim_data["script_path"],
+                    description=sim_data.get("description", ""),
+                )
+                if sim_data
+                else None
+            )
+
+            # --- rebuild TestCriteria ---
+            crit_data = entry.get("criteria")
+            criteria = (
+                TestCriteria(
+                    duration=crit_data.get("duration"),
+                    max_memory=crit_data.get("max_memory"),
+                    mean_memory=crit_data.get("mean_memory"),
+                    compliance_rate=crit_data.get("compliance_rate"),
+                )
+                if crit_data
+                else None
+            )
+
+            # --- rebuild TestReferences ---
+            ref_data = entry.get("references", [])
+            references = [
+                TestReference(
+                    parameters=ref.get("parameters", {}),
+                    result=ref.get("result", None),
+                )
+                for ref in ref_data
+            ]
+
+            # --- assemble Test ---
+            test = Test(
+                test_name=entry["name"],
+                description=entry.get("description", ""),
+            )
+            test.simulation = simulation
+            test.criteria = criteria
+            test.references = references
+
+            all_tests.append(test)
+
+        return all_tests
 
     def get_test_by_name(self, name: str) -> Optional[Test]:
         """Retrieve a Test by name, rebuilding Simulation, TestCriteria, and TestReference list if present."""

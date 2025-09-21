@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, List
 from domain.simulation import Simulation
 from domain.test import Test
 
@@ -25,6 +25,9 @@ class IRepository(ABC):
     def get_test_by_name(self, name: str) -> Optional[Test]:
         """Retrieve a Test by name, or None if not found."""
         pass
+
+    def get_all_tests(self) -> List[Test]:
+        """Retrieve all tests, rebuilding Simulation, TestCriteria, and TestReference list if present."""
 
     @abstractmethod
     def update_test(self, test: "Test") -> None:

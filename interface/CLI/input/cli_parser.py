@@ -10,6 +10,7 @@ class CLIParser:
             "help"                  : CLIHelpCommand,
             "gui"                   : LaunchGUICommand,
             "new-test"              : NewTestCommand,
+            "list-tests"            : ListTestsCommand,
             "new-sim"               : NewSimulationCommand,
             "set-sim"               : SetSimulationCommand,
             "run-sim"               : RunSimulationCommand,

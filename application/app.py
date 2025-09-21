@@ -1,3 +1,4 @@
+import math
 from application.ports.i_repository import IRepository
 from domain.simulation import Simulation
 from domain.simulation_result import SimulationResult
@@ -25,18 +26,54 @@ class App:
         new_test = Test(test_name, description)
         self.repository.save_test(new_test)
 
+    def get_tests_list(self):
+        return self.repository.get_all_tests()
+
+    def run_test(self, test_name: str, number_of_repetitions: int):
+        selected_test = self.repository.get_test_by_name(test_name)
+        selected_test.execute(number_of_repetitions)
+
+        return selected_test.report()
+
     def set_simulation(self, test_name, simulation_name: str):
         selected_sim  = self.repository.get_simulation_by_name(simulation_name)
         selected_test = self.repository.get_test_by_name(test_name)
         selected_test.simulation = selected_sim
         self.repository.update_test(selected_test)
 
-    def set_references_from_simulation(self, test_name: str, number_of_references: int = 5):
+    def set_references_from_simulation(
+            self,
+            test_name: str,
+            number_of_runs: int = 5,
+            scalability_case: bool = False,
+            domain_scalability_order: str | int = "polynomial",
+            domain_size: int = 1,
+    ):
         selected_test = self.repository.get_test_by_name(test_name)
-        for _ in range(number_of_references):
-            selected_test.simulation.run()
-        selected_test.references = [TestReference(sim_result.result, sim_result.parameters)
-                                    for sim_result in selected_test.simulation.results]
+
+        def repetitions_per_iteration(iteration_number: int) -> int:
+            if not scalability_case:
+                return 1
+
+            if   domain_scalability_order == "polynomial":
+                return max(1, int(domain_size ** iteration_number))
+            elif domain_scalability_order == "exponential":
+                return max(1, int((iteration_number ** domain_size)))
+            elif domain_scalability_order == "factorial":
+                return max(1, int(math.factorial(iteration_number) * domain_size))
+            else:
+                raise ValueError(f"Unsupported scalability order: {domain_scalability_order}")
+
+        # Run simulations
+        for i in range(number_of_runs):
+            for _ in range(repetitions_per_iteration(i+1)):
+                selected_test.simulation.run(i)
+
+        # Update references with results
+        selected_test.references = [
+            TestReference(sim_result.result, sim_result.parameters)
+            for sim_result in selected_test.simulation.results
+        ]
         self.repository.update_test(selected_test)
 
     def set_references_from_source(self, test_name: str, reference_source: str):
@@ -58,11 +95,3 @@ class App:
             raise AttributeError(f"Invalid criterion name: {criterion_name}")
 
         self.repository.update_test(selected_test)
-
-    def run_test(self, test_name: str, number_of_repetitions: int):
-        selected_test = self.repository.get_test_by_name(test_name)
-        selected_test.execute(number_of_repetitions)
-
-        print(selected_test.simulation.get_plot_data("duration"))
-
-        return selected_test.report()
