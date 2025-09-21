@@ -17,7 +17,7 @@ class DropdownSelector:
             self.container,
             str(self.title).lower(),
             values=[],
-            button=("  🖋️", self.function, 5),
+            button=("  🖋️", self.function, 4),
         )
 
     def _add_dropdown(self, parent, label, values, button=None):

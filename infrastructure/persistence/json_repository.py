@@ -13,35 +13,7 @@ class Repository(IRepository):
 
     def __init__(self):
         self.data_dir: Path = Env.get_data_dir()
-        self.sim_file: Path = self.data_dir.joinpath("simulations.json")
         self.test_file: Path = self.data_dir.joinpath("tests.json")
-
-    # ---------------- Simulations ----------------
-
-    def save_new_simulation(self, new_sim: Simulation) -> None:
-        """Save only the simulation's name, script path, and description."""
-        sim_entry = {
-            "name": new_sim.name,
-            "script_path": new_sim.script_path,
-            "description": new_sim.description,
-        }
-
-        data = self._load_json(self.sim_file)
-        data.append(sim_entry)
-        self._save_json(self.sim_file, data)
-
-    def get_simulation_by_name(self, name: str) -> Optional[Simulation]:
-        """Retrieve a Simulation by name."""
-        data = self._load_json(self.sim_file)
-
-        for entry in data:
-            if entry.get("name") == name:
-                return Simulation(
-                    name=entry["name"],
-                    script_path=entry["script_path"],
-                    description=entry.get("description", ""),
-                )
-        return None
 
     # ---------------- Tests ----------------
 

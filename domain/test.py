@@ -6,10 +6,10 @@ from domain.simulation import Simulation, SimulationResult
 
 
 class Test:
-    def __init__(self, test_name: str, description: str = ""):
+    def __init__(self, test_name: str, description: str = "", simulation_script: str = ""):
         self.name = test_name
         self.description = description
-        self.simulation: Simulation | None = None
+        self.simulation:Simulation = Simulation(test_name, simulation_script, description)
         self.criteria: TestCriteria | None = None
         self.references: list[TestReference] | None = None
         self.results: list[TestResult] = []

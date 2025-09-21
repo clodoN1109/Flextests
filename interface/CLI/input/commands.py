@@ -45,6 +45,7 @@ class NewTestCommand(Command):
         cls.args = args
         cls.test_name = args[0]
         cls.description = args[1] if len(args) > 1 else ""
+        cls.simulation_script = args[2] if len(args) > 2 else ""
 
 @dataclass
 class ListTestsCommand(Command):
@@ -59,21 +60,6 @@ class ListTestsCommand(Command):
         cls.args = args
 
 @dataclass
-class NewSimulationCommand(Command):
-
-    @classmethod
-    def command_name(cls) -> str:
-        return "new-sim"
-
-    @classmethod
-    def __init__(cls, args: list[str]):
-        cls.name = cls.command_name()
-        cls.args = args
-        cls.simulation_name = args[0]
-        cls.script_path     = args[1]
-        cls.description     = args[2] if len(args) > 2 else ""
-
-@dataclass
 class SetSimulationCommand(Command):
 
     @classmethod
@@ -86,19 +72,6 @@ class SetSimulationCommand(Command):
         cls.args = args
         cls.test_name       = args[0]
         cls.simulation_name = args[1]
-
-@dataclass
-class RunSimulationCommand(Command):
-
-    @classmethod
-    def command_name(cls) -> str:
-        return "run-sim"
-
-    @classmethod
-    def __init__(cls, args: list[str]):
-        cls.name = cls.command_name()
-        cls.args = args
-        cls.simulation_name = args[0]
 
 @dataclass
 class RunTestCommand(Command):

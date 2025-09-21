@@ -26,22 +26,15 @@ class CLIController:
             gui.prepare(App(Repository()), cmd.args)
             gui.launch()
 
-        if isinstance(cmd, NewSimulationCommand):
-            self.app.new_simulation(cmd.simulation_name, cmd.script_path, cmd.description)
-
         if isinstance(cmd, SetSimulationCommand):
             self.app.set_simulation(cmd.test_name, cmd.simulation_name)
-
-        if isinstance(cmd, RunSimulationCommand):
-            results = self.app.run_simulation(cmd.simulation_name)
-            self.presenter.text_block(results)
 
         if isinstance(cmd, RunTestCommand):
             results = self.app.run_test(cmd.test_name, cmd.repetitions)
             self.presenter.text_block(results)
 
         if isinstance(cmd, NewTestCommand):
-            self.app.new_test(cmd.test_name, cmd.description)
+            self.app.new_test(cmd.test_name, cmd.description, cmd.simulation_script)
 
         if isinstance(cmd, ListTestsCommand):
             test_list =  self.repository.get_all_tests()

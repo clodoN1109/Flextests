@@ -24,7 +24,6 @@ class GUIRenderer:
         def update_controller_section():
             test_names_list = [test.name for test in self.app.get_tests_list()]
             self.window.panes.input_pane.test_selector.combobox.configure(values=test_names_list)
-            print(self.window.panes.input_pane.test_selector.var.get())
         update_controller_section()
 
     def config_os_window_navbar(self):

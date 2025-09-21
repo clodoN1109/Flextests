@@ -1,7 +1,6 @@
 import math
 from application.ports.i_repository import IRepository
 from domain.simulation import Simulation
-from domain.simulation_result import SimulationResult
 from domain.test import Test
 from domain.test_criteria import TestCriteria
 from domain.test_reference import TestReference
@@ -13,32 +12,33 @@ class App:
     def __init__(self, repository: IRepository):
         self.repository : IRepository      = repository
 
-    def new_simulation(self, simulation_name: str, script_path: str, description: str = ""):
-        new_sim = Simulation(simulation_name, script_path, description)
-        self.repository.save_new_simulation(new_sim)
-
-    def run_simulation(self, simulation_name: str) -> SimulationResult:
-        selected_sim  = self.repository.get_simulation_by_name(simulation_name)
-        selected_sim.run()
-        return selected_sim.results[-1]
-
-    def new_test(self, test_name: str, description: str = ""):
-        new_test = Test(test_name, description)
+    def new_test(self, test_name: str, description: str = "", simulation_script:str = ""):
+        new_test = Test(test_name, description, simulation_script)
         self.repository.save_test(new_test)
+
+    def edit_test(self, current_test_name, new_test_name: str, description: str = "", simulation_script:str = ""):
+        selected_test = self.get_test_by_name(current_test_name)
+        selected_test.name = new_test_name
+        selected_test.description = description
+        selected_test.simulation = Simulation(new_test_name, simulation_script, description)
+        self.repository.remove_test(selected_test)
+        self.repository.save_test(selected_test)
 
     def get_tests_list(self):
         return self.repository.get_all_tests()
 
+    def get_test_by_name(self, test_name: str):
+        return self.repository.get_test_by_name(test_name)
+
     def run_test(self, test_name: str, number_of_repetitions: int):
         selected_test = self.repository.get_test_by_name(test_name)
         selected_test.execute(number_of_repetitions)
-
+        print(selected_test.report())
         return selected_test.report()
 
-    def set_simulation(self, test_name, simulation_name: str):
-        selected_sim  = self.repository.get_simulation_by_name(simulation_name)
+    def set_simulation(self, test_name, simulation_script: str):
         selected_test = self.repository.get_test_by_name(test_name)
-        selected_test.simulation = selected_sim
+        selected_test.simulation = Simulation(test_name, simulation_script, selected_test.description)
         self.repository.update_test(selected_test)
 
     def set_references_from_simulation(
