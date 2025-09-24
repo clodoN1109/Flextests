@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from application.ports.i_repository import IRepository
 from domain.simulation import Simulation
 from domain.test import Test, TestCriteria
@@ -13,35 +13,7 @@ class Repository(IRepository):
 
     def __init__(self):
         self.data_dir: Path = Env.get_data_dir()
-        self.sim_file: Path = self.data_dir.joinpath("simulations.json")
         self.test_file: Path = self.data_dir.joinpath("tests.json")
-
-    # ---------------- Simulations ----------------
-
-    def save_new_simulation(self, new_sim: Simulation) -> None:
-        """Save only the simulation's name, script path, and description."""
-        sim_entry = {
-            "name": new_sim.name,
-            "script_path": new_sim.script_path,
-            "description": new_sim.description,
-        }
-
-        data = self._load_json(self.sim_file)
-        data.append(sim_entry)
-        self._save_json(self.sim_file, data)
-
-    def get_simulation_by_name(self, name: str) -> Optional[Simulation]:
-        """Retrieve a Simulation by name."""
-        data = self._load_json(self.sim_file)
-
-        for entry in data:
-            if entry.get("name") == name:
-                return Simulation(
-                    name=entry["name"],
-                    script_path=entry["script_path"],
-                    description=entry.get("description", ""),
-                )
-        return None
 
     # ---------------- Tests ----------------
 
@@ -61,6 +33,7 @@ class Repository(IRepository):
                 "mean_memory": test.criteria.mean_memory,
                 "compliance_rate": test.criteria.compliance_rate,
             } if test.criteria else None,
+            "reference_source": test.reference_source,
             "references": [
                 {
                     "parameters": ref.parameters,
@@ -73,6 +46,64 @@ class Repository(IRepository):
         data = self._load_json(self.test_file)
         data.append(test_entry)
         self._save_json(self.test_file, data)
+
+    def get_all_tests(self) -> List[Test]:
+        """Retrieve all tests, rebuilding Simulation, TestCriteria, and TestReference list if present."""
+        data = self._load_json(self.test_file)
+        all_tests: List[Test] = []
+
+        for entry in data:
+            # --- rebuild Simulation ---
+            sim_data = entry.get("simulation")
+            simulation = (
+                Simulation(
+                    name=sim_data["name"],
+                    script_path=sim_data["script_path"],
+                    description=sim_data.get("description", ""),
+                )
+                if sim_data
+                else None
+            )
+
+            # --- rebuild TestCriteria ---
+            crit_data = entry.get("criteria")
+            criteria = (
+                TestCriteria(
+                    duration=crit_data.get("duration"),
+                    max_memory=crit_data.get("max_memory"),
+                    mean_memory=crit_data.get("mean_memory"),
+                    compliance_rate=crit_data.get("compliance_rate"),
+                )
+                if crit_data
+                else None
+            )
+            # --- rebuild reference source ---
+            ref_source_data = entry.get("reference_source", [])
+            reference_source = ref_source_data[0] if ref_source_data else None
+
+            # --- rebuild TestReferences ---
+            ref_data = entry.get("references", [])
+            references = [
+                TestReference(
+                    parameters=ref.get("parameters", {}),
+                    result=ref.get("result", None),
+                )
+                for ref in ref_data
+            ]
+
+            # --- assemble Test ---
+            test = Test(
+                test_name=entry["name"],
+                description=entry.get("description", ""),
+            )
+            test.simulation = simulation
+            test.criteria = criteria
+            test.reference_source = reference_source
+            test.references = references
+
+            all_tests.append(test)
+
+        return all_tests
 
     def get_test_by_name(self, name: str) -> Optional[Test]:
         """Retrieve a Test by name, rebuilding Simulation, TestCriteria, and TestReference list if present."""

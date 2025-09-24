@@ -45,21 +45,19 @@ class NewTestCommand(Command):
         cls.args = args
         cls.test_name = args[0]
         cls.description = args[1] if len(args) > 1 else ""
+        cls.simulation_script = args[2] if len(args) > 2 else ""
 
 @dataclass
-class NewSimulationCommand(Command):
+class ListTestsCommand(Command):
 
     @classmethod
     def command_name(cls) -> str:
-        return "new-sim"
+        return "list-tests"
 
     @classmethod
     def __init__(cls, args: list[str]):
         cls.name = cls.command_name()
         cls.args = args
-        cls.simulation_name = args[0]
-        cls.script_path     = args[1]
-        cls.description     = args[2] if len(args) > 2 else ""
 
 @dataclass
 class SetSimulationCommand(Command):
@@ -74,19 +72,6 @@ class SetSimulationCommand(Command):
         cls.args = args
         cls.test_name       = args[0]
         cls.simulation_name = args[1]
-
-@dataclass
-class RunSimulationCommand(Command):
-
-    @classmethod
-    def command_name(cls) -> str:
-        return "run-sim"
-
-    @classmethod
-    def __init__(cls, args: list[str]):
-        cls.name = cls.command_name()
-        cls.args = args
-        cls.simulation_name = args[0]
 
 @dataclass
 class RunTestCommand(Command):
@@ -123,7 +108,7 @@ class SetReferencesCommand(Command):
     # -----------------------------------------------------------------------------
     # Test reference source (reference_source):
     #
-    # The `reference_source` argument must point to either a URL or a local json
+    # The `reference_source` argument must point to either to a local json, script or URL that
     # that provides a JSON list of reference elements. Each element must be a JSON
     # object with the following structure:
     #
@@ -170,6 +155,7 @@ class SetReferencesCommand(Command):
     def __init__(cls, args: list[str]):
         cls.name = cls.command_name()
         cls.args = args
-        cls.test_name            = args[0]
-        cls.reference_source     = args[1] if len(args) > 1 else None
-        cls.number_of_references = int(args[2]) if len(args) > 2 else 5
+        cls.test_name                 = args[0]
+        cls.reference_source          = args[1]      if len(args) > 1 else None
+        cls.data_points               = int(args[2]) if len(args) > 2 else None
+

@@ -6,11 +6,12 @@ from domain.simulation import Simulation, SimulationResult
 
 
 class Test:
-    def __init__(self, test_name: str, description: str = ""):
+    def __init__(self, test_name: str, description: str = "", simulation_script: str = "", reference_source: str = ""):
         self.name = test_name
         self.description = description
-        self.simulation: Simulation | None = None
+        self.simulation:Simulation = Simulation(test_name, simulation_script, description)
         self.criteria: TestCriteria | None = None
+        self.reference_source: str | None = None
         self.references: list[TestReference] | None = None
         self.results: list[TestResult] = []
         self.stats: TestStats | None = None
@@ -21,8 +22,8 @@ class Test:
         if not self.simulation:
             raise RuntimeError("No simulation assigned to this test")
 
-        for _ in range(times):
-            self.simulation.run()
+        for i in range(times):
+            self.simulation.run(i)
 
         sim_results: list[SimulationResult] = self.simulation.results
         self.results = [
@@ -89,6 +90,7 @@ class Test:
         else:
             result.efficiency = "passed"  # no criteria → auto-pass
 
+        result.simulation = sim_result
         return result
 
     def report(self) -> str:

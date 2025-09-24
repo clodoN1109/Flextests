@@ -1,13 +1,10 @@
+import time
+from typing import List
+import psutil
 from domain.simulation_result import SimulationResult
 from domain.simulation_statistics import SimulationStats
-import os
-import sys
-import time
-import json
-import shutil
-import psutil
-import subprocess
-from typing import List
+from infrastructure.io.json_fetcher import JsonFetcher
+
 
 class Simulation:
     # -----------------------------------------------------------------------------
@@ -36,59 +33,22 @@ class Simulation:
         self.description = description
         self.results: List[SimulationResult] = []
 
-    def run(self):
+    def run(self, iteration: int = 1):
         result: SimulationResult = self._run_script(self.script_path, True)
         self.results.append(result)
 
-    def get_plot_data(self, stats_name: str):
-        stats = [result.stats for result in self.results if result.stats is not None]
-        selected_stats_var = [getattr(item, stats_name) for item in stats if hasattr(item, stats_name)]
-        return selected_stats_var
-
     @staticmethod
-    def _run_script(script_path: str, capture_output: bool) -> SimulationResult:
-        ext = os.path.splitext(script_path)[1].lower()
-
-        if getattr(sys, "frozen", False):
-            python_exec = shutil.which("python") or shutil.which("python3")
-            if not python_exec:
-                raise RuntimeError("Python interpreter not found in PATH.")
-        else:
-            python_exec = sys.executable
-
-        interpreters = {
-            ".py": [python_exec],
-            ".ps1": ["pwsh", "-ExecutionPolicy", "Bypass", "-File"],
-            ".sh": ["bash"],
-            ".bat": None,
-            ".rb": ["ruby"],
-        }
-
-        if ext not in interpreters:
-            raise RuntimeError(f"Unsupported script type: {ext}")
-
-        cmd = interpreters[ext]
-        if cmd is None:
-            cmdline = [script_path]
-        else:
-            if shutil.which(cmd[0]) is None:
-                raise RuntimeError(f"Interpreter not found: {cmd[0]}")
-            cmdline = cmd + [script_path]
-
-        start = time.perf_counter()
-
-        proc = subprocess.Popen(
-            cmdline,
-            stdout=subprocess.PIPE if capture_output else None,
-            stderr=subprocess.PIPE if capture_output else None,
-            text=True,
-        )
+    def _run_script(script_path: str, capture_output: bool = True) -> "SimulationResult":
+        fetcher = JsonFetcher()  # can pass max_depth if you wants
+        # Spawn process via fetcher so interpreter selection is centralized
+        proc = fetcher.spawn_process(script_path, capture_output=capture_output)
         ps_proc = psutil.Process(proc.pid)
 
         mem_samples = []
+        start = time.perf_counter()
         try:
             while True:
-                if proc.poll() is not None:  # finished
+                if proc.poll() is not None:
                     break
                 try:
                     mem_info = ps_proc.memory_info()
@@ -103,7 +63,7 @@ class Simulation:
         if proc.returncode != 0:
             raise RuntimeError(f"Script failed with exit code {proc.returncode}:\n{stderr}")
 
-        # --- compute stats ---
+        # compute memory stats
         if mem_samples:
             min_mem = min(mem_samples)
             max_mem = max(mem_samples)
@@ -118,40 +78,28 @@ class Simulation:
             mean_memory=mean_mem,
         )
 
-        # --- parse output into result + parameters ---
-        result = ""
+        # parse JSON output using JsonFetcher helper
+        result_value = ""
         parameters: dict[str, str] = {}
 
         if capture_output and stdout:
-            text = stdout.strip()
-            try:
-                data = json.loads(text)
-                if not isinstance(data, dict):
-                    raise ValueError("JSON output must be an object")
+            data = fetcher.parse_json(stdout)
 
-                # --- new expected format ---
-                if "result" in data and "parameters" in data:
-                    result = str(data["result"]).strip()
-                    if not isinstance(data["parameters"], dict):
-                        raise ValueError("'parameters' must be a dictionary")
-                    parameters = {str(k): str(v) for k, v in data["parameters"].items()}
-                # --- fallback: single key=value pair ---
-                elif len(data) == 1:
-                    key, value = next(iter(data.items()))
-                    result = str(value).strip()
-                    parameters = {str(key).strip(): str(value).strip()}
-                else:
-                    raise ValueError(
-                        "JSON output must be either {'result':..., 'parameters': {...}} or a single key-value pair"
-                    )
+            if not isinstance(data, dict):
+                raise ValueError("JSON output must be an object")
 
-            except json.JSONDecodeError as e:
+            if "result" in data and "parameters" in data:
+                result_value = str(data["result"]).strip()
+                if not isinstance(data["parameters"], dict):
+                    raise ValueError("'parameters' must be a dictionary")
+                parameters = {str(k): str(v) for k, v in data["parameters"].items()}
+            elif len(data) == 1:
+                key, value = next(iter(data.items()))
+                result_value = str(value).strip()
+                parameters = {str(key).strip(): str(value).strip()}
+            else:
                 raise ValueError(
-                    f"Expected JSON output, got: {text}"
-                ) from e
+                    "JSON output must be either {'result':..., 'parameters': {...}} or a single key-value pair"
+                )
 
-        return SimulationResult(stats=stats, result=result, parameters=parameters)
-
-
-
-
+        return SimulationResult(stats=stats, result=result_value, parameters=parameters)

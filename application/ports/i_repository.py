@@ -1,20 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Optional
-from domain.simulation import Simulation
+from typing import Optional, List
 from domain.test import Test
 
 
 class IRepository(ABC):
-
-    @abstractmethod
-    def save_new_simulation(self, new_sim: Simulation) -> None:
-        """Persist a new Simulation (only metadata, not results)."""
-        pass
-
-    @abstractmethod
-    def get_simulation_by_name(self, name: str) -> Optional[Simulation]:
-        """Retrieve a Simulation by name, or None if not found."""
-        pass
 
     @abstractmethod
     def save_test(self, test: Test) -> None:
@@ -26,6 +15,9 @@ class IRepository(ABC):
         """Retrieve a Test by name, or None if not found."""
         pass
 
+    def get_all_tests(self) -> List[Test]:
+        """Retrieve all tests, rebuilding Simulation, TestCriteria, and TestReference list if present."""
+
     @abstractmethod
     def update_test(self, test: "Test") -> None:
         pass
@@ -33,3 +25,4 @@ class IRepository(ABC):
     @abstractmethod
     def remove_test(self, test: "Test") -> None:
         pass
+

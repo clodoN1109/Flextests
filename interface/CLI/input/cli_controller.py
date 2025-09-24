@@ -26,31 +26,26 @@ class CLIController:
             gui.prepare(App(Repository()), cmd.args)
             gui.launch()
 
-        if isinstance(cmd, NewSimulationCommand):
-            self.app.new_simulation(cmd.simulation_name, cmd.script_path, cmd.description)
-
         if isinstance(cmd, SetSimulationCommand):
             self.app.set_simulation(cmd.test_name, cmd.simulation_name)
-
-        if isinstance(cmd, RunSimulationCommand):
-            results = self.app.run_simulation(cmd.simulation_name)
-            self.presenter.text_block(results)
 
         if isinstance(cmd, RunTestCommand):
             results = self.app.run_test(cmd.test_name, cmd.repetitions)
             self.presenter.text_block(results)
 
         if isinstance(cmd, NewTestCommand):
-            self.app.new_test(cmd.test_name, cmd.description)
+            self.app.new_test(cmd.test_name, cmd.description, cmd.simulation_script)
+
+        if isinstance(cmd, ListTestsCommand):
+            test_list =  self.repository.get_all_tests()
+            names_list =  [test.name for test in test_list]
+            self.presenter.text_block(names_list)
 
         if isinstance(cmd, SetCriterionCommand):
             self.app.set_criterion(cmd.test_name, cmd.criterion_name, cmd.criterion_value)
 
         if isinstance(cmd, SetReferencesCommand):
-            if cmd.reference_source is None or cmd.reference_source == "":
-                self.app.set_references_from_simulation(cmd.test_name, cmd.number_of_references)
-            else:
-                self.app.set_references_from_source(cmd.test_name, cmd.reference_source)
+                self.app.set_references_from_source(cmd.test_name, cmd.reference_source, cmd.data_points)
 
         self._update_repository()
 

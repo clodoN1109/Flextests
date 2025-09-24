@@ -22,30 +22,31 @@ class TitleBar:
         icon_path = f"{Env.get_script_path()}/../assets/icons/logo_{self.style.prefix}_96px.png"
         self.set_logo_image(title_bar, icon_path)
 
-        # Title text (align left)s
+        # Title text (align left)
         self.window_tk.title_label = ttk.Label(
             title_bar, text="", anchor="w", font=("Courier", 10, "italic")
         )
-        self.window_tk.title_label.pack(side="left", padx=5)
+        # Use asymmetric pady → smaller bottom, bigger top
+        self.window_tk.title_label.pack(side="left", padx=5, pady=(2, 1))
 
         # Control buttons
         btn_frame = ttk.Frame(title_bar)
-        btn_frame.pack(side="right", padx=5)
+        btn_frame.pack(side="right", padx=5, pady=(2, 1))
 
         style = ttk.Style()
-        style.configure("TitleBar.TButton", relief="flat", padding=5)
+        style.configure("TitleBar.TButton", relief="flat", padding=4)
 
-        Button().add_button(btn_frame, "○/⬤", self._toggle_transparency, 10)
-        Button().add_button(btn_frame, "☽/☀", self.toggle_dark_mode, 10)
-        Button().add_button(btn_frame, "🗕", self._minimize, 10)
-        Button().add_button(btn_frame, "🗖", self._toggle_maximize, 10)
-        Button().add_button(btn_frame, "✕", self.window_tk.destroy, 10)
+        Button(btn_frame, "○/⬤", self._toggle_transparency, width=10).render()
+        Button(btn_frame, "☽/☀", self.toggle_dark_mode, width=10).render()
+        Button(btn_frame, "🗕", self._minimize, width=10).render()
+        Button(btn_frame, "🗖", self._toggle_maximize, width=10).render()
+        Button(btn_frame, "✕", self.window_tk.destroy, width=10).render()
 
         self.window_tk.title_separator = tk.Frame(
             self.window_tk,
-            height=5,
+            height=5,  # thinner separator looks crisper
             bd=0,
-            bg="#ff0000"  # plain tk Frame uses bg reliably
+            bg="#ff0000"
         )
         self.window_tk.title_separator.pack(fill="x", side="top")
 
