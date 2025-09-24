@@ -36,11 +36,11 @@ class TitleBar:
         style = ttk.Style()
         style.configure("TitleBar.TButton", relief="flat", padding=4)
 
-        Button.add_button(btn_frame, "○/⬤", self._toggle_transparency, 10)
-        Button.add_button(btn_frame, "☽/☀", self.toggle_dark_mode, 10)
-        Button.add_button(btn_frame, "🗕", self._minimize, 10)
-        Button.add_button(btn_frame, "🗖", self._toggle_maximize, 10)
-        Button.add_button(btn_frame, "✕", self.window_tk.destroy, 10)
+        Button(btn_frame, "○/⬤", self._toggle_transparency, width=10).render()
+        Button(btn_frame, "☽/☀", self.toggle_dark_mode, width=10).render()
+        Button(btn_frame, "🗕", self._minimize, width=10).render()
+        Button(btn_frame, "🗖", self._toggle_maximize, width=10).render()
+        Button(btn_frame, "✕", self.window_tk.destroy, width=10).render()
 
         self.window_tk.title_separator = tk.Frame(
             self.window_tk,

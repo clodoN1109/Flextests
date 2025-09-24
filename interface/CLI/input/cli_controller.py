@@ -45,14 +45,7 @@ class CLIController:
             self.app.set_criterion(cmd.test_name, cmd.criterion_name, cmd.criterion_value)
 
         if isinstance(cmd, SetReferencesCommand):
-            if cmd.reference_source is None or cmd.reference_source == "":
-                self.app.set_references_from_simulation(cmd.test_name,
-                                                        cmd.number_of_runs,
-                                                        cmd.scalability_case,
-                                                        cmd.domain_scalability_order,
-                                                        cmd.domain_size)
-            else:
-                self.app.set_references_from_source(cmd.test_name, cmd.reference_source)
+                self.app.set_references_from_source(cmd.test_name, cmd.reference_source, cmd.data_points)
 
         self._update_repository()
 

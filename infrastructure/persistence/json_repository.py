@@ -33,6 +33,7 @@ class Repository(IRepository):
                 "mean_memory": test.criteria.mean_memory,
                 "compliance_rate": test.criteria.compliance_rate,
             } if test.criteria else None,
+            "reference_source": test.reference_source,
             "references": [
                 {
                     "parameters": ref.parameters,
@@ -76,6 +77,9 @@ class Repository(IRepository):
                 if crit_data
                 else None
             )
+            # --- rebuild reference source ---
+            ref_source_data = entry.get("reference_source", [])
+            reference_source = ref_source_data[0] if ref_source_data else None
 
             # --- rebuild TestReferences ---
             ref_data = entry.get("references", [])
@@ -94,6 +98,7 @@ class Repository(IRepository):
             )
             test.simulation = simulation
             test.criteria = criteria
+            test.reference_source = reference_source
             test.references = references
 
             all_tests.append(test)

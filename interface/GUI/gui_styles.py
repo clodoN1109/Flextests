@@ -123,7 +123,6 @@ class GUIStyle:
         window.panes.input_pane.configurations_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
         window.panes.input_pane.statistics_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
         window.panes.input_pane.statistics_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
-
         tk_root.update_idletasks()
 
 

@@ -4,20 +4,20 @@ from tkinter import ttk
 
 class DropdownSelector:
 
-    def __init__(self, container, title, function=None, style=None):
+    def __init__(self, container, title, button=None, style=None):
         self.container = container
         self.title = title
-        self.function = function
         self.style = style or ttk.Style()
         self.box = None
         self.var = None
+        self.button = button
 
     def render(self):
         self._add_dropdown(
             self.container,
             str(self.title).lower(),
             values=[],
-            button=("  🖋️", self.function, 4),
+            button=self.button,
         )
 
     def _add_dropdown(self, parent, label, values, button=None):
@@ -42,7 +42,8 @@ class DropdownSelector:
         self.var = tk.StringVar(master=self.container)
 
         combo_frame = tk.Frame(frame)
-        combo_frame.pack(side="left", fill="x", expand=True, padx=(0, 10))
+
+        combo_frame.pack(side="left", fill="x", expand=True, padx=(0, 10 if button else 0))
 
         self.combobox = ttk.Combobox(
             combo_frame,

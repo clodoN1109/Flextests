@@ -108,7 +108,7 @@ class SetReferencesCommand(Command):
     # -----------------------------------------------------------------------------
     # Test reference source (reference_source):
     #
-    # The `reference_source` argument must point to either a URL or a local json
+    # The `reference_source` argument must point to either to a local json, script or URL that
     # that provides a JSON list of reference elements. Each element must be a JSON
     # object with the following structure:
     #
@@ -156,8 +156,6 @@ class SetReferencesCommand(Command):
         cls.name = cls.command_name()
         cls.args = args
         cls.test_name                 = args[0]
-        cls.reference_source          = args[1]       if len(args) > 1 else None
-        cls.number_of_runs            = int(args[2])  if len(args) > 2 else 5
-        cls.scalability_case          = bool(args[3]) if len(args) > 3 else False
-        cls.domain_scalability_order  = args[4]       if len(args) > 4 else "polynomial"
-        cls.domain_size               = int(args[5])  if len(args) > 5 else 1
+        cls.reference_source          = args[1]      if len(args) > 1 else None
+        cls.data_points               = int(args[2]) if len(args) > 2 else None
+

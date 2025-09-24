@@ -16,10 +16,10 @@ class GUIRenderer:
         self.set_font(self.root, "courier", 10)
 
     def render(self):
-        self.window = Window(self.root, self.style, self.app).render("flextests", 1000, 600)
+        self.window = Window(self.root, self.style, self.app).render("flextests", 1000, 650)
         self.style.apply_style(self.window)
-        self.update_state()
 
+    # OBSOLETE
     def update_state(self):
         def update_controller_section():
             test_names_list = [test.name for test in self.app.get_tests_list()]

@@ -46,7 +46,7 @@ class CLIHelp:
             },
             "set-ref": {
                 "desc": "Sets reference values for a test.",
-                "syntax": "set-ref <test_name> [reference_source] [number_of_runs]"
+                "syntax": "set-ref <test_name> [reference_source] [breadth]"
             },
         }
 

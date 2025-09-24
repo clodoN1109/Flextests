@@ -1,44 +1,36 @@
 import tkinter as tk
 
 class SectionTitle:
-    def __init__(self, parent, title: str, target_frame=None) -> None:
+    def __init__(self, parent, title: str):
         self.parent = parent
         self.title = title
-        self.target_frame = target_frame
-
         self.is_visible = True
-        self.frame = None
+
+        # This frame wraps everything: title row + content
+        self.frame = tk.Frame(self.parent)
+        self.title_row = tk.Frame(self.frame)
+        self.target_frame = tk.Frame(self.frame, padx=10, pady=10)  # content container
+
         self.arrow_label = None
         self.title_label = None
 
     def render(self):
-        # Container frame for arrow + title
-        self.frame = tk.Frame(self.parent)
-        self.frame.pack(fill="x", padx=0, pady=(0, 2))
+        # Pack outer frame
+        self.frame.pack(fill="x", padx=0, pady=(0,2))
 
-        # Arrow on the left
-        self.arrow_label = tk.Label(
-            self.frame,
-            text="▼",
-            anchor="w",
-            cursor="hand2",
-            fg="white"
-        )
+        # Pack title row
+        self.title_row.pack(fill="x")
+
+        # Arrow + title
+        self.arrow_label = tk.Label(self.title_row, text="▼", cursor="hand2", fg="white")
         self.arrow_label.pack(side="left")
-
-        # Title centered
-        self.title_label = tk.Label(
-            self.frame,
-            text=self.title.upper(),
-            anchor="center",
-        )
+        self.title_label = tk.Label(self.title_row, text=self.title.upper(), anchor="center")
         self.title_label.pack(side="left", fill="x", expand=True)
 
-        # Pack target frame immediately if visible
-        if self.target_frame is not None and self.is_visible:
-            self.target_frame.pack(fill="x", padx=10, pady=(0, 10))
+        # Pack target frame (starts visible)
+        self.target_frame.pack(fill="x")
 
-        # Bind both labels to toggle
+        # Bind toggle
         self.arrow_label.bind("<Button-1>", self.toggle)
         self.title_label.bind("<Button-1>", self.toggle)
 
@@ -46,17 +38,9 @@ class SectionTitle:
 
     def toggle(self, event=None):
         if self.is_visible:
-            if self.target_frame is not None:
-                self.target_frame.pack_forget()
+            self.target_frame.pack_forget()
             self.arrow_label.config(text="▶")
         else:
-            if self.target_frame is not None:
-                # Pack the frame just after the title bar frame
-                self.target_frame.pack(
-                    fill="x", padx=10, pady=(0, 10),
-                    before=self.frame.master.winfo_children()[self.frame.master.winfo_children().index(self.frame) + 1]
-                )
+            self.target_frame.pack(fill="x")
             self.arrow_label.config(text="▼")
-
         self.is_visible = not self.is_visible
-
