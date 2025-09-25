@@ -4,7 +4,6 @@ from typing import List
 class ResultsPlotData:
     def __init__(self, title = "", subtitle = "", variable_name = "", data: list[str | float | int | None] = None):
         self.title = title
-        self.subtitle = subtitle
         self.variable_name = variable_name
         self.data = data
 

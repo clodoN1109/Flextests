@@ -1,5 +1,7 @@
 from tkinter import ttk, filedialog
 import tkinter as tk
+from typing import List
+
 from application.app import App
 from domain.test import Test
 from infrastructure.environment.environment import Env
@@ -10,6 +12,7 @@ from interface.GUI.components.output_pane import OutputPane
 from interface.GUI.components.section_title import SectionTitle
 from interface.GUI.gui_styles import GUIStyle
 from interface.GUI.models.OutputPaneData import OutputPaneData
+from interface.GUI.models.PlotOptions import PlotOptions
 from interface.GUI.models.ReferencesTable import ReferencesTable
 from interface.GUI.models.ResultsPlotData import ResultsPlotData
 from interface.GUI.models.ResultsTable import ResultsTable
@@ -28,7 +31,7 @@ class InputPane:
         self.style = style
 
         self.output_pane = output_pane
-        self.output_pane_data = None
+        self.output_pane_data: OutputPaneData = None
 
         # gui elements
         self.panned_window = panned_window
@@ -174,7 +177,9 @@ class InputPane:
             row=row,
             manager="grid"
         )
-        self.variable_selector.render(values=["duration", "max memory", "mean memory", "compliance"])
+        self.variable_selector.render(values=["duration", "max memory", "mean memory", "min memory"])
+        self.variable_selector.combobox.bind("<<ComboboxSelected>>", self.update_selected_variable)
+
         row += 1
 
         # --- Test Sample ---
@@ -204,6 +209,7 @@ class InputPane:
 
         # --- Resolution Spinbox ---
         self.resolution_var = tk.IntVar(value=2)
+        self.resolution_var.trace_add("write", lambda *args: self.update_plot_resolution())
         self.resolution_label = tk.Label(self.statistics_frame, text="resolution:")
         self.resolution_spinbox = tk.Spinbox(
             self.statistics_frame,
@@ -224,7 +230,8 @@ class InputPane:
                 self.resolution_label.grid_remove()
                 self.resolution_spinbox.grid_remove()
 
-        self.plot_selector.combobox.bind("<<ComboboxSelected>>", update_resolution_visibility)
+        self.plot_selector.combobox.bind("<<ComboboxSelected>>", update_resolution_visibility, add="+")
+        self.plot_selector.combobox.bind("<<ComboboxSelected>>", self.update_plot_type, add="+")
         update_resolution_visibility()
 
         self.update_all_sections()
@@ -236,11 +243,12 @@ class InputPane:
 
         selected_test_name = self.get_selected_test_name()
         completed_test = self.app.run_test(selected_test_name, self.data_points_field.get())
-        selected_variable_name = self.variable_selector.var.get()
 
         test_description:str = completed_test.description
 
-        plot_data:ResultsPlotData = self.get_results_plot_data(selected_variable_name, completed_test)
+        plot_data:List[ResultsPlotData] = []
+        for variable_name in ["duration", "max memory", "mean memory", "min memory"]:
+            plot_data.append(self.get_results_plot_data(variable_name, completed_test))
 
         results_summary_data:ResultsSummaryTable = self.get_results_summary(completed_test)
 
@@ -248,7 +256,37 @@ class InputPane:
 
         references_table_data:ReferencesTable = ReferencesTable.get_references_table(completed_test)
 
-        self.output_pane_data = OutputPaneData(test_description, references_table_data, results_summary_data, results_table_data, plot_data)
+        plot_options = PlotOptions(self.variable_selector.var.get(), self.plot_selector.var.get(), int(self.resolution_spinbox.get()))
+
+        self.output_pane_data = OutputPaneData(test_description,
+                                               references_table_data,
+                                               results_summary_data,
+                                               results_table_data,
+                                               plot_data,
+                                               plot_options)
+
+        self.present_data()
+
+    def present_data(self):
+        self.output_pane.update(self.output_pane_data)
+
+    def update_plot_type(self, event=None):
+        if self.output_pane_data is not None:
+            self.output_pane_data.plot_options.plot_type = self.plot_selector.var.get()
+            self.present_data()
+
+    def update_plot_resolution(self, event=None):
+        if self.output_pane_data is not None:
+            try:
+                self.output_pane_data.plot_options.resolution = int(self.resolution_spinbox.get())
+            except ValueError:
+                self.output_pane_data.plot_options.resolution = 0  # fallback if user typed junk
+            self.present_data()
+
+    def update_selected_variable(self, event=None):
+        if self.output_pane_data is not None:
+            self.output_pane_data.plot_options.selected_variable = self.variable_selector.var.get()
+            self.present_data()
 
     @staticmethod
     def get_results_summary(completed_test):
@@ -256,8 +294,8 @@ class InputPane:
 
     def get_results_plot_data(self, variable_name, completed_test: Test)-> ResultsPlotData:
         if variable_name is not None and variable_name != "":
-            title = variable_name + self.plot_selector.var.get()
-            subtitle = ""
+            title = f"{variable_name}".upper()
+            subtitle = self.plot_selector.combobox.get().upper()
             data = [result.simulation.stats.get_value_by_name(variable_name) for result in completed_test.results]
             return ResultsPlotData(title, subtitle, variable_name, data)
         else:

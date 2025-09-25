@@ -5,16 +5,16 @@ from typing import Any
 class ResultRow:
     efficacy: str | None
     efficiency: str | None
-    result: str | None
     duration: float | None
     min_memory: float | None
     max_memory: float | None
     mean_memory: float | None
+    result: str | None
     parameters: dict[str, Any]
 
     def __getitem__(self, key: str):
         # allows access like row["efficacy"] or row["alpha"]
-        if key in {"efficacy", "efficiency", "result", "duration", "min_memory", "max_memory", "mean_memory"}:
+        if key in {"efficacy", "efficiency", "duration", "min_memory", "max_memory", "mean_memory", "result"}:
             return getattr(self, key)
         return self.parameters.get(key, None)
 
@@ -41,8 +41,8 @@ class ResultsTable:
             if result.simulation and result.simulation.parameters:
                 all_param_keys.update(result.simulation.parameters.keys())
 
-        base_headers = ["efficacy", "efficiency", "result"]
-        stats_headers = ["duration", "min_memory", "max_memory", "mean_memory"]
+        base_headers = ["efficacy", "efficiency"]
+        stats_headers = ["duration", "min_memory", "max_memory", "mean_memory", "result"]
         headers = base_headers + stats_headers + sorted(all_param_keys)
 
         rows: list[ResultRow] = []
@@ -53,11 +53,11 @@ class ResultsTable:
             row = ResultRow(
                 efficacy=result.efficacy,
                 efficiency=result.efficiency,
-                result=sim_result.result if sim_result else None,
                 duration=stats.duration if stats else None,
                 min_memory=stats.min_memory if stats else None,
                 max_memory=stats.max_memory if stats else None,
                 mean_memory=stats.mean_memory if stats else None,
+                result=sim_result.result if sim_result else None,
                 parameters=sim_result.parameters if sim_result else {}
             )
             rows.append(row)

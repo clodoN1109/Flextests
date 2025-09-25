@@ -6,14 +6,15 @@ from interface.GUI.components.output_pane import OutputPane
 
 
 class Panes:
-    def __init__(self, window_tk, style, app: App) -> None:
+    def __init__(self, window_tk, style, app: App, window) -> None:
         self.tk = window_tk
         self.style = style
         self.app = app
 
-        self.input_pane = None
-        self.output_pane = None
+        self.input_pane:InputPane|None = None
+        self.output_pane:OutputPane|None = None
         self.paned_window = None
+        self.window = window
 
         screen = Env.get_window()
         self.screen_width = screen.get("screen_width")
@@ -30,7 +31,7 @@ class Panes:
         self.paned_window.pack(fill="both", expand=True)
 
         # Render left and right panes
-        self.output_pane = OutputPane(self.paned_window, 0.83, self.style, self.app)
+        self.output_pane = OutputPane(self.paned_window, 0.83, self.style, self.app, self.window)
         self.input_pane = InputPane(self.paned_window, 0.17, self.style, self.app, self.output_pane)
         self.input_pane.render()
         self.output_pane.render()

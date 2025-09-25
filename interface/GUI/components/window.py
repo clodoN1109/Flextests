@@ -57,7 +57,7 @@ class Window:
 
         # Render elements
         self.title_bar = TitleBar(self.tk, self.style, self).render()
-        self.panes = Panes(self.tk, self.style, self.app).render()
+        self.panes = Panes(self.tk, self.style, self.app, self).render()
 
         return self
 
