@@ -12,7 +12,8 @@ class CLIParser:
             "new-test"              : NewTestCommand,
             "list-tests"            : ListTestsCommand,
             "set-sim"               : SetSimulationCommand,
-            "set-ref"               : SetReferencesCommand,
+            "set-ref"               : SetReferenceCommand,
+            "update-ref"            : UpdateReferenceCommand,
             "set-criterion"         : SetCriterionCommand,
             "run-test"              : RunTestCommand,
 

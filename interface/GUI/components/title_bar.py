@@ -4,15 +4,14 @@ from infrastructure.environment.environment import Env
 from interface.GUI.components.button import Button
 from interface.GUI.gui_styles import GUIStyle
 
-
 class TitleBar:
 
     def __init__(self, window_tk, style: GUIStyle, window):
-        self.window = window
+        self.window: "Window" = window
         self.window_tk = window_tk
         self.style = style
-        self._is_maximized = False
-        self._is_transparent = False
+        self.is_maximized = False
+        self.is_transparent = False
 
     def render(self):
         # Title bar frame
@@ -36,10 +35,10 @@ class TitleBar:
         style = ttk.Style()
         style.configure("TitleBar.TButton", relief="flat", padding=4)
 
-        Button(btn_frame, "○/⬤", self._toggle_transparency, width=10).render()
+        Button(btn_frame, "○/⬤", self.toggle_transparency, width=10).render()
         Button(btn_frame, "☽/☀", self.toggle_dark_mode, width=10).render()
         Button(btn_frame, "🗕", self._minimize, width=10).render()
-        Button(btn_frame, "🗖", self._toggle_maximize, width=10).render()
+        Button(btn_frame, "🗖", self.toggle_maximize, width=10).render()
         Button(btn_frame, "✕", self.window_tk.destroy, width=10).render()
 
         self.window_tk.title_separator = tk.Frame(
@@ -78,23 +77,28 @@ class TitleBar:
         self.window_tk.iconify()
 
 
-    def _toggle_transparency(self):
-        if self._is_transparent:
+    def toggle_transparency(self):
+        if self.is_transparent:
             self.window_tk.attributes("-alpha", 1)
-            self._is_transparent = False
+            self.is_transparent = False
+            self.window.config.transparent = False
         else:
             self.window_tk.attributes("-alpha", 0.9)
-            self._is_transparent = True
+            self.is_transparent = True
+            self.window.config.transparent = True
+        self.save_config(self.window.config)
 
-
-    def _toggle_maximize(self):
-        if self._is_maximized:
+    def toggle_maximize(self):
+        if self.is_maximized:
             self.window_tk.geometry(self.window_tk._restore_geometry)
-            self._is_maximized = False
+            self.is_maximized = False
+            self.window.config.maximized = False
         else:
             self.window_tk._restore_geometry = self.window_tk.geometry()
             self.window_tk.geometry(f"{self.window_tk.winfo_screenwidth()}x{self.window_tk.winfo_screenheight()}+0+0")
-            self._is_maximized = True
+            self.is_maximized = True
+            self.window.config.maximized = True
+        self.save_config(self.window.config)
 
     def toggle_dark_mode(self):
         self.style.toggle_dark_mode(self.window)
@@ -112,3 +116,6 @@ class TitleBar:
         icon_path = f"{Env.get_script_path()}/../assets/icons/logo_{self.style.prefix}_96px.png"
         self.icon_image = tk.PhotoImage(file=icon_path)  # overwrite reference
         self.icon_label.configure(image=self.icon_image)
+
+    def save_config(self, new_config):
+        self.window.app.repository.save_gui_config(new_config)

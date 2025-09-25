@@ -1,6 +1,7 @@
 from tkinter import Tk
 from typing import List
 from application.app import App
+from interface.GUI.gui_config import GUIConfig
 from interface.GUI.gui_renderer import GUIRenderer
 from interface.GUI.gui_styles import GUIStyle
 
@@ -8,15 +9,18 @@ from interface.GUI.gui_styles import GUIStyle
 class GUI:
     def __init__(self):
         self.app: App | None = None
-        self.settings: List[str] = []
+        self.config = GUIConfig()
         self.root = None
         self.style = None
 
-    def prepare(self, app: App, settings: List[str]) -> None:
+    def prepare(self, app: App, config:GUIConfig) -> None:
         self.app = app
-        self.settings = settings
+        self.config = config
         self.root = Tk()
-        self.style = GUIStyle('dark')
+        if self.config is None:
+            self.style = GUIStyle('dark')
+        else :
+            self.style = GUIStyle('light')
 
     def launch(self) -> None:
         GUIRenderer(self).render()

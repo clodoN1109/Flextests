@@ -1,11 +1,12 @@
 import json
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Any
 from application.ports.i_repository import IRepository
 from domain.simulation import Simulation
 from domain.test import Test, TestCriteria
 from domain.test_reference import TestReference
 from infrastructure.environment.environment import Env
+from interface.GUI.gui_config import GUIConfig
 
 
 class Repository(IRepository):
@@ -14,11 +15,48 @@ class Repository(IRepository):
     def __init__(self):
         self.data_dir: Path = Env.get_data_dir()
         self.test_file: Path = self.data_dir.joinpath("tests.json")
+        self.gui_config_file: Path = self.data_dir.joinpath("gui_config.json")
+
+    # ---------------- Configurations ----------------
+
+    def save_gui_config(self, config: "GUIConfig") -> None:
+        """Save GUI configuration to file."""
+        self.gui_config_file.parent.mkdir(parents=True, exist_ok=True)
+        with self.gui_config_file.open("w", encoding="utf-8") as f:
+            json.dump(config.__dict__, f, indent=2, ensure_ascii=False)
+
+    def load_gui_config(self) -> "GUIConfig":
+        """Load GUI configuration from file. Creates file with defaults if missing/invalid."""
+        if not self.gui_config_file.exists():
+            default_config = GUIConfig()
+            self.save_gui_config(default_config)
+            return default_config
+
+        try:
+            with self.gui_config_file.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            # If file is corrupt, reset to defaults
+            default_config = GUIConfig()
+            self.save_gui_config(default_config)
+            return default_config
+
+        if not isinstance(data, dict):
+            # Unexpected structure → reset to defaults
+            default_config = GUIConfig()
+            self.save_gui_config(default_config)
+            return default_config
+
+        cfg = GUIConfig()
+        for key, value in data.items():
+            if hasattr(cfg, key):
+                setattr(cfg, key, value)
+        return cfg
 
     # ---------------- Tests ----------------
 
     def save_test(self, test: Test) -> None:
-        """Save a Test with its simulation reference, criteria, and references."""
+        """Save a Test with its simulation reference, criteria, and reference."""
         test_entry = {
             "name": test.name,
             "description": test.description,
@@ -28,18 +66,18 @@ class Repository(IRepository):
                 "description": test.simulation.description,
             } if test.simulation else None,
             "criteria": {
-                "duration": test.criteria.duration,
-                "max_memory": test.criteria.max_memory,
-                "mean_memory": test.criteria.mean_memory,
-                "compliance_rate": test.criteria.compliance_rate,
-            } if test.criteria else None,
+                "duration": test.criteria.duration if test.criteria else "",
+                "max_memory": test.criteria.max_memory if test.criteria else "",
+                "mean_memory": test.criteria.mean_memory if test.criteria else "",
+                "compliance_rate": test.criteria.compliance_rate if test.criteria else "",
+            },
             "reference_source": test.reference_source,
-            "references": [
+            "reference": [
                 {
                     "parameters": ref.parameters,
                     "result": ref.result,
                 }
-                for ref in (test.references or [])
+                for ref in (test.reference or [])
             ],
         }
 
@@ -81,9 +119,9 @@ class Repository(IRepository):
             ref_source_data = entry.get("reference_source", [])
             reference_source = ref_source_data[0] if ref_source_data else None
 
-            # --- rebuild TestReferences ---
-            ref_data = entry.get("references", [])
-            references = [
+            # --- rebuild TestReference ---
+            ref_data = entry.get("reference", [])
+            reference = [
                 TestReference(
                     parameters=ref.get("parameters", {}),
                     result=ref.get("result", None),
@@ -99,7 +137,7 @@ class Repository(IRepository):
             test.simulation = simulation
             test.criteria = criteria
             test.reference_source = reference_source
-            test.references = references
+            test.reference = reference
 
             all_tests.append(test)
 
@@ -136,9 +174,13 @@ class Repository(IRepository):
                     else None
                 )
 
-                # --- rebuild TestReferences ---
-                ref_data = entry.get("references", [])
-                references = [
+                # --- rebuild reference source ---
+                ref_source_data = entry.get("reference_source", [])
+                reference_source = ref_source_data if ref_source_data else None
+
+                # --- rebuild TestReference ---
+                ref_data = entry.get("reference", [])
+                reference = [
                     TestReference(
                         parameters=ref.get("parameters", {}),
                         result=ref.get("result", None),
@@ -153,7 +195,8 @@ class Repository(IRepository):
                 )
                 test.simulation = simulation
                 test.criteria = criteria
-                test.references = references
+                test.reference_source = reference_source
+                test.reference = reference
                 return test
 
         return None

@@ -58,10 +58,14 @@ class GUIStyle:
         else:
             raise ValueError(f"Unknown style mode: {style}")
 
-    def toggle_dark_mode(self, window):
+    def toggle_dark_mode(self, window: "Window"):
         if self.prefix == "dark":
             self.select_style("light")
-        else: self.select_style("dark")
+            window.config.dark_mode = False
+        else:
+            self.select_style("dark")
+            window.config.dark_mode = True
+        window.title_bar.save_config(window.config)
         self.apply_style(window)
 
     def apply_style(self, window):

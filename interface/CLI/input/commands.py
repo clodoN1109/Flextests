@@ -104,7 +104,7 @@ class SetCriterionCommand(Command):
         cls.criterion_value = args[2]
 
 @dataclass
-class SetReferencesCommand(Command):
+class SetReferenceCommand(Command):
     # -----------------------------------------------------------------------------
     # Test reference source (reference_source):
     #
@@ -144,7 +144,7 @@ class SetReferencesCommand(Command):
     # Each object in the list will be used to build a TestReference:
     #   - `result` maps to TestReference.result
     #   - `parameters` maps to TestReference.parameters
-    # This allows automated evaluation of simulation results against known references.
+    # This allows automated evaluation of simulation results against known reference.
     # -----------------------------------------------------------------------------
 
     @classmethod
@@ -157,5 +157,16 @@ class SetReferencesCommand(Command):
         cls.args = args
         cls.test_name                 = args[0]
         cls.reference_source          = args[1]      if len(args) > 1 else None
-        cls.data_points               = int(args[2]) if len(args) > 2 else None
 
+@dataclass
+class UpdateReferenceCommand(Command):
+        @classmethod
+        def command_name(cls) -> str:
+            return "update-ref"
+
+        @classmethod
+        def __init__(cls, args: list[str]):
+            cls.name = cls.command_name()
+            cls.args = args
+            cls.test_name                 = args[0]
+            cls.data_points               = int(args[1]) if len(args) > 1 else None

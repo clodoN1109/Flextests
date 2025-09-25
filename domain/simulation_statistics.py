@@ -20,5 +20,19 @@ class SimulationStats:
             f"\n\t\t  Mean Memory: {self.mean_memory:.2f}MB"
         )
 
-
+    def get_value_by_name(self, name: str):
+        """Return the value of the stat with the given name (case-insensitive)."""
+        normalized = name.strip().lower().replace(" ", "_")
+        mapping = {
+            "duration": self.duration,
+            "max_memory": self.max_memory,
+            "min_memory": self.min_memory,
+            "mean_memory": self.mean_memory,
+        }
+        if normalized not in mapping:
+            raise ValueError(
+                f"Unknown stat name '{name}'. "
+                f"Valid options: {', '.join(mapping.keys())}"
+            )
+        return mapping[normalized]
 
