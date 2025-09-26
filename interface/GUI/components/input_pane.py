@@ -1,7 +1,8 @@
+import sys
+import traceback
 from tkinter import ttk, filedialog
 import tkinter as tk
 from typing import List
-
 from application.app import App
 from domain.test import Test
 from infrastructure.environment.environment import Env
@@ -20,7 +21,7 @@ from interface.GUI.models.ResultsSummaryTable import ResultsSummaryTable
 
 
 class InputPane:
-    def __init__(self, panned_window, initial_width, style: GUIStyle, app: App, output_pane: OutputPane) -> None:
+    def __init__(self, panned_window, initial_width, style: GUIStyle, app: App, output_pane: OutputPane, window:"Window") -> None:
 
         screen = Env.get_window()
         self.screen_width = screen.get("screen_width")
@@ -29,7 +30,7 @@ class InputPane:
         self.initial_width = initial_width
         self.app = app
         self.style = style
-
+        self.window = window
         self.output_pane = output_pane
         self.output_pane_data: OutputPaneData = None
 
@@ -45,7 +46,6 @@ class InputPane:
         self.number_of_runs_field = None
         self.reference_source = None
         self.reference_source_var = None
-        self.data_points_field = None
         self.reference_data_points_var = None
         self.configurations_section_frame = None
         self.run_test_button = None
@@ -62,6 +62,9 @@ class InputPane:
         self.max_memory_var = None
         self.mean_memory_var = None
         self.test_data_points_var = None
+        self.data_points_label = None
+        self.test_data_spinbox = None
+
 
     def render(self):
         # Create the left pane container
@@ -83,7 +86,8 @@ class InputPane:
             manager="pack"
         )
         self.test_selector.render()
-        self.test_selector.combobox.bind("<<ComboboxSelected>>", self.load_test_config)
+        self.test_selector.combobox.bind("<<ComboboxSelected>>", self.load_test_config, add="+")
+        self.test_selector.combobox.bind("<<ComboboxSelected>>", self.present_test_info, add="+")
 
         self.new_test_button = Button(
             self.controller_section_title.target_frame,
@@ -182,18 +186,23 @@ class InputPane:
 
         row += 1
 
-        # --- Test Sample ---
-        self.test_data_points_var = tk.IntVar()
-        self.data_points_field = FormField(
+        # --- Test Sample Spinbox ---
+        self.test_data_points_var = tk.IntVar(value=1)
+        self.data_points_label = tk.Label(self.statistics_frame, text="sample:")
+        self.data_points_label.grid(row=row, column=0, padx=0, pady=2, sticky="w")
+        self.test_data_spinbox = tk.Spinbox(
             self.statistics_frame,
-            label_text="sample:",
-            variable=self.test_data_points_var,
-            unit="data points",
-            manager="grid",
-            row=row,
-            padding_left=0
+            from_=0,
+            to=100000,
+            textvariable=self.test_data_points_var,
+            width=5,
+            command=self.run_selected_test
         )
-        self.test_data_points_var.set(1)
+        self.test_data_spinbox.bind("<Return>", self.update_test_sample)
+
+        self.test_data_spinbox.grid(row=row, column=1, padx=0, pady=2, sticky="w")
+        self.data_points_label = tk.Label(self.statistics_frame, text="data points")
+        self.data_points_label.grid(row=row, column=1, padx=50, pady=2, sticky="w")
         row += 1
 
         # --- Plot selector ---
@@ -237,43 +246,78 @@ class InputPane:
         self.update_all_sections()
         return self
 
+    def present_test_info(self, event=None):
+        selected_test_name = self.get_selected_test_name()
+        if not selected_test_name:
+            return
+
+        selected_test:Test = self.app.get_test_by_name(selected_test_name)
+        test_description = selected_test.description
+        references_table_data:ReferencesTable = ReferencesTable.get_references_table(selected_test)
+
+        self.output_pane_data = OutputPaneData(test_description, references_table_data)
+        self.send_data_to_output_pane()
+
     def run_selected_test(self):
 
-        self.save_test_config()
+        try:
+            self.window.footer.set_state("processing")
 
-        selected_test_name = self.get_selected_test_name()
-        completed_test = self.app.run_test(selected_test_name, self.data_points_field.get())
+            self.save_test_config()
 
-        test_description:str = completed_test.description
+            selected_test_name = self.get_selected_test_name()
+            if not selected_test_name:
+                return
 
-        plot_data:List[ResultsPlotData] = []
-        for variable_name in ["duration", "max memory", "mean memory", "min memory"]:
-            plot_data.append(self.get_results_plot_data(variable_name, completed_test))
+            completed_test = self.app.run_test(selected_test_name, self.test_data_points_var.get())
 
-        results_summary_data:ResultsSummaryTable = self.get_results_summary(completed_test)
+            test_description:str = completed_test.description
 
-        results_table_data:ResultsTable = ResultsTable.get_results_table(completed_test)
+            plot_data:List[ResultsPlotData] = []
+            for variable_name in ["duration", "max memory", "mean memory", "min memory"]:
+                plot_data.append(self.get_results_plot_data(variable_name, completed_test))
 
-        references_table_data:ReferencesTable = ReferencesTable.get_references_table(completed_test)
+            results_summary_data:ResultsSummaryTable = self.get_results_summary(completed_test)
 
-        plot_options = PlotOptions(self.variable_selector.var.get(), self.plot_selector.var.get(), int(self.resolution_spinbox.get()))
+            results_table_data:ResultsTable = ResultsTable.get_results_table(completed_test)
 
-        self.output_pane_data = OutputPaneData(test_description,
-                                               references_table_data,
-                                               results_summary_data,
-                                               results_table_data,
-                                               plot_data,
-                                               plot_options)
+            references_table_data:ReferencesTable = ReferencesTable.get_references_table(completed_test)
 
-        self.present_data()
+            plot_options = PlotOptions(self.variable_selector.var.get(), self.plot_selector.var.get(), int(self.resolution_spinbox.get()))
 
-    def present_data(self):
+            self.output_pane_data = OutputPaneData(test_description,
+                                                   references_table_data,
+                                                   results_summary_data,
+                                                   results_table_data,
+                                                   plot_data,
+                                                   plot_options)
+
+            self.send_data_to_output_pane()
+
+            self.window.footer.set_state("idle")
+
+        except Exception as e:
+            tb = sys.exc_info()[2]  # traceback object
+            last_frame = traceback.extract_tb(tb)[-1]
+            filename = last_frame.filename
+            lineno = last_frame.lineno
+            func_name = last_frame.name
+            self.window.footer.set_state(
+                "error",
+                f"{e} (File: {filename}, line: {lineno}, in {func_name})"
+            )
+
+
+    def update_test_sample(self, event=None):
+        self.run_selected_test()
+
+    def send_data_to_output_pane(self):
         self.output_pane.update(self.output_pane_data)
 
     def update_plot_type(self, event=None):
         if self.output_pane_data is not None:
             self.output_pane_data.plot_options.plot_type = self.plot_selector.var.get()
-            self.present_data()
+            self.send_data_to_output_pane()
 
     def update_plot_resolution(self, event=None):
         if self.output_pane_data is not None:
@@ -281,12 +325,12 @@ class InputPane:
                 self.output_pane_data.plot_options.resolution = int(self.resolution_spinbox.get())
             except ValueError:
                 self.output_pane_data.plot_options.resolution = 0  # fallback if user typed junk
-            self.present_data()
+            self.send_data_to_output_pane()
 
     def update_selected_variable(self, event=None):
         if self.output_pane_data is not None:
             self.output_pane_data.plot_options.selected_variable = self.variable_selector.var.get()
-            self.present_data()
+            self.send_data_to_output_pane()
 
     @staticmethod
     def get_results_summary(completed_test):
@@ -431,10 +475,10 @@ class InputPane:
         if not selected_test:
             return
 
-        if (self.reference_source_var.get() != selected_test.reference_source) or (
-                self.reference_data_points_var.get() != len(selected_test.reference)
-        ):
+        if self.reference_source_var.get() != selected_test.reference_source:
             self.app.set_reference_source(selected_test.name, self.reference_source_var.get())
+
+        if self.reference_data_points_var.get() != len(selected_test.reference):
             self.app.update_reference(selected_test.name, self.reference_data_points_var.get())
 
         self.app.set_criterion(selected_test.name, "duration", self.max_duration_var.get())

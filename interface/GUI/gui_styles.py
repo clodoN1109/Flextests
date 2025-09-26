@@ -116,25 +116,61 @@ class GUIStyle:
         # Update ttk global styles via Style object
         style = ttk.Style(tk_root)
         style.theme_use("default")
-
+        # Treeview base style
+        style.configure(
+            "Custom.Treeview",
+            background=self.text_bg,
+            foreground=self.text_fg,
+            fieldbackground=self.text_bg,
+            rowheight=22  # optional, adjust row height
+        )
+        # Treeview heading style
+        style.configure(
+            "Custom.Treeview.Heading",
+            background=self.primary_bg,
+            foreground=self.primary_fg,
+            relief="flat"
+        )
+        # Hover / active state for headings
+        style.map(
+            "Custom.Treeview.Heading",
+            background=[("active", self.accent_bg)],
+            foreground=[("active", self.primary_fg)]
+        )
+        # Frames and labels
         style.configure("TFrame", background=self.primary_bg)
         style.configure("TLabel", background=self.primary_bg, foreground=self.primary_fg)
-
-        # 🔹 Button styling with vertical padding
+        # Buttons
         style.configure(
             "TButton",
             background=self.accent_bg,
             foreground=self.primary_fg,
-            padding=(4, 2)  # (horizontal, vertical) → adjust vertical to match combobox
+            padding=(4, 2)  # (horizontal, vertical)
         )
         style.map(
             "TButton",
             background=[("active", self.accent_hover)],
             foreground=[("disabled", "#888888")]
         )
-
+        # Entries
         style.configure("TEntry", fieldbackground=self.text_bg, foreground=self.text_fg)
-
+        # Scrollbars
+        style.configure(
+            "Vertical.TScrollbar",
+            troughcolor=self.primary_bg,
+            background=self.accent_bg,
+            arrowcolor=self.primary_fg,
+            bordercolor=self.primary_bg,
+            gripcount=0
+        )
+        style.configure(
+            "Horizontal.TScrollbar",
+            troughcolor=self.primary_bg,
+            background=self.accent_bg,
+            arrowcolor=self.primary_fg,
+            bordercolor=self.primary_bg,
+            gripcount=0
+        )
 
         # Update specific tk elements
         tk_root.title_separator.configure(bg=self.separator_bg)
@@ -145,12 +181,19 @@ class GUIStyle:
         window.panes.input_pane.configurations_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
         window.panes.input_pane.statistics_section_title.title_label.configure(bg=f"{self.section_separator_bg}")
         window.panes.input_pane.statistics_section_title.arrow_label.configure(bg=f"{self.section_separator_bg}")
+        window.footer.frame.configure(bg=self.footer_bg)
+        window.footer.info_label.configure(bg=self.footer_bg)
+        window.footer.state_label.configure(bg=self.footer_bg)
+
         textbox = getattr(window.panes.output_pane, "description_textbox", None)
         if textbox and str(textbox) and textbox.winfo_exists():
             textbox.configure(bg=self.primary_bg)
 
+        self.apply_style_to_plot(window)
+
         tk_root.update_idletasks()
 
+    def apply_style_to_plot(self, window:"Window"):
         # --- matplotlib re-style ---
         output_pane: "OutputPane" = window.panes.output_pane
         ax = output_pane.ax
@@ -192,9 +235,6 @@ class GUIStyle:
             for spine in ax.spines.values():
                 spine.set_edgecolor(self.primary_fg)
                 spine.set_linewidth(0.8)
-
-            # Tight layout for spacing
-            fig.tight_layout()
 
             # Redraw
             canvas.draw_idle()

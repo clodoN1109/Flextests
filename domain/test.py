@@ -31,7 +31,7 @@ class Test:
             for sim_result in sim_results
         ]
         self.stats = TestStats.from_results(self.results)
-        compliance_rate = self.stats.effective_and_efficient/self.stats.total
+        compliance_rate = self.stats.effective_and_efficient/self.stats.total if self.stats.total != 0 else 0
         if float(compliance_rate) < self.criteria.compliance_rate:
             self.final_result = "failed"
         else:

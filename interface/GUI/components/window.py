@@ -1,6 +1,7 @@
 from application.app import App
 from infrastructure.environment.environment import Env
 import tkinter as tk
+from interface.GUI.components.footer import Footer
 from interface.GUI.components.panes import Panes
 from interface.GUI.components.title_bar import TitleBar
 from interface.GUI.gui_config import GUIConfig
@@ -11,6 +12,7 @@ class Window:
         # elements
         self.title_bar:TitleBar|None = None
         self.panes = None
+        self.footer:Footer|None = None
 
         self.root = root
         self.tk = root
@@ -58,6 +60,7 @@ class Window:
         # Render elements
         self.title_bar = TitleBar(self.tk, self.style, self).render()
         self.panes = Panes(self.tk, self.style, self.app, self).render()
+        self.footer = Footer(self.tk, self.style, self).render()
 
         return self
 
