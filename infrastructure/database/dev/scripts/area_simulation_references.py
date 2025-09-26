@@ -1,22 +1,19 @@
 import json
 
 # Domain of the parameters
-x_values = range(1, 11)  # 1 through 10
+x_values = range(1, 11)
 y_values = range(1, 11)
 
-reference = []
+reference_list = []
 
 for x in x_values:
     for y in y_values:
-        result = x * y
-        reference = {
-            "result": str(result),  # keep result as string for consistency
-            "parameters": {
-                "x": str(x),
-                "y": str(y)
-            }
+        item = {
+            "result": str(x * y),
+            "parameters": {"x": str(x), "y": str(y)}
         }
-        reference.append(reference)
+        reference_list.append(item)
 
-# Output the entire reference set as JSON array
-print(json.dumps(reference, indent=2))
+# Output as JSON array
+print(json.dumps(reference_list, indent=2))
+

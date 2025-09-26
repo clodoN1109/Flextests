@@ -32,7 +32,7 @@ class Panes:
 
         # Render left and right panes
         self.output_pane = OutputPane(self.paned_window, 0.83, self.style, self.app, self.window)
-        self.input_pane = InputPane(self.paned_window, 0.17, self.style, self.app, self.output_pane)
+        self.input_pane = InputPane(self.paned_window, 0.17, self.style, self.app, self.output_pane, self.window)
         self.input_pane.render()
         self.output_pane.render()
 

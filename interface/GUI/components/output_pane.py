@@ -1,3 +1,4 @@
+import time
 import tkinter as tk
 from tkinter import ttk
 from typing import Any, List
@@ -15,6 +16,7 @@ class OutputPane:
     TABS = ("DESCRIPTION", "REFERENCES", "RESULTS", "STATISTICS")
 
     def __init__(self, container_tk, initial_width: float, style: GUIStyle, app, window) -> None:
+
         self.container = container_tk
         self.app = app
         self.style = style
@@ -48,12 +50,16 @@ class OutputPane:
         self.canvas = None
         self.plot_title = None
         self.plot_subtitle = None
+        self.plot_area = None
 
         # components
         self.description_textbox: tk.Text | None = None
         self.results_table_frame: ttk.Frame | None = None
         self.summary_frame: ttk.Frame | None = None
         self.references_table_frame: ttk.Frame | None = None
+        self.plot_frame = None
+        self.warning_label = None
+
 
     # ------------------- rendering the static frame -------------------
     def render(self):
@@ -102,6 +108,7 @@ class OutputPane:
 
     # ------------------- tab management -------------------
     def _on_tab_selected(self, tab_name: str):
+        self.clear_warning()
         self.current_tab = tab_name
         self._highlight_active_tab()
         self._render_current_tab()
@@ -119,13 +126,6 @@ class OutputPane:
         for tab, frame in self._frames.items():
             if tab == self.current_tab:
                 frame.tkraise()
-        # clear plot canvas
-        if self._plot_canvas:
-            try:
-                self._plot_canvas.get_tk_widget().destroy()
-            except Exception:
-                pass
-            self._plot_canvas = None
 
         if not self.output_pane_data:
             return
@@ -152,12 +152,12 @@ class OutputPane:
 
         self.description_textbox = tk.Text(text_frame, wrap="word", height=10)
         self.description_textbox.insert("1.0", getattr(self.output_pane_data, "test_description", ""))
-        self.description_textbox.configure(state="disabled")
-        self.description_textbox.grid(row=0, column=0, sticky="nsew")
+        self.description_textbox.configure(state="disabled", padx=10, pady=10)
+        self.description_textbox.grid(row=0, column=0, sticky="nsew", padx=4, pady=4)
 
         vsb = ttk.Scrollbar(text_frame, orient="vertical", command=self.description_textbox.yview)
         self.description_textbox.configure(yscrollcommand=vsb.set)
-        vsb.grid(row=0, column=1, sticky="ns")
+        vsb.grid(row=0, column=1, sticky="ns", pady=4)
 
     # ------------------- REFERENCES -------------------
     def _render_references(self):
@@ -175,6 +175,7 @@ class OutputPane:
         self.references_table_frame.grid_rowconfigure(0, weight=1)
         self.references_table_frame.grid_columnconfigure(0, weight=1)
         self._render_table(self.references_table_frame, table_data)
+        self._make_sortable_treeview(self.references_table_frame.winfo_children()[0])
 
     # ------------------- RESULTS -------------------
     def _render_results(self):
@@ -182,97 +183,157 @@ class OutputPane:
         for child in frame.winfo_children():
             child.destroy()
 
-        frame.grid_rowconfigure(0, weight=0)  # summary
-        frame.grid_rowconfigure(1, weight=1)  # table
-        frame.grid_columnconfigure(0, weight=1)
-
-        # summary
-        self.summary_frame = ttk.Frame(frame)
-        self.summary_frame.grid(row=0, column=0, sticky="nw", pady=(0, 6))
-        self._render_summary(getattr(self.output_pane_data, "results_summary_data", None), self.summary_frame)
-
         # table
         self.results_table_frame = ttk.Frame(frame)
-        self.results_table_frame.grid(row=1, column=0, sticky="nsew")
+        self.results_table_frame.grid(row=0, column=0, sticky="nsew")
         self.results_table_frame.grid_rowconfigure(0, weight=1)
         self.results_table_frame.grid_columnconfigure(0, weight=1)
         self._render_table(self.results_table_frame, getattr(self.output_pane_data, "results_table_data", None))
+        self._make_sortable_treeview(self.results_table_frame.winfo_children()[0])
 
     def _render_statistics(self):
-        plot_data_list: List[ResultsPlotData] = getattr(self.output_pane_data, "plot_data", None)
-        plot_options: PlotOptions = getattr(self.output_pane_data, "plot_options", None)
+        plot_data_list: List[ResultsPlotData] = getattr(
+            self.output_pane_data, "plot_data", None
+        )
+        plot_options: PlotOptions = getattr(
+            self.output_pane_data, "plot_options", None
+        )
 
         # no data or no options
         if not plot_data_list or not plot_options:
-            ttk.Label(self.content_frame, text="No plot data available.").grid(sticky="nsew")
+            self.show_warning("No data yet.")
             return
+        else:
+            self.clear_warning()
 
         # find the matching variable
         plot_data = next(
-            (pd for pd in plot_data_list if pd.variable_name == plot_options.selected_variable),
-            None
+            (
+                pd
+                for pd in plot_data_list
+                if pd.variable_name == plot_options.selected_variable
+            ),
+            None,
         )
         if not plot_data or not plot_data.data:
-            ttk.Label(
-                self.content_frame,
-                text=f"No plot data for variable '{plot_options.selected_variable}'."
-            ).grid(sticky="nsew")
+            self.show_warning("No data yet.")
             return
+        self.clear_warning()
 
-        # container for plot
-        plot_frame = ttk.Frame(self.content_frame)
-        plot_frame.grid(row=0, column=0, sticky="nsew")
-        plot_frame.grid_rowconfigure(0, weight=1)
-        plot_frame.grid_columnconfigure(0, weight=1)
+        # container for plot + summary
+        # allow content_frame to expand its child
+        self.content_frame.grid_rowconfigure(0, weight=1)
+        self.content_frame.grid_columnconfigure(0, weight=1)
 
-        self._render_plot_with_matplotlib(
-            plot_frame,
+        # container for plot + summary
+        self.plot_frame = ttk.Frame(self.content_frame)
+        self.plot_frame.grid(row=0, column=0, sticky="nsew")
+        self.plot_frame.grid_rowconfigure(0, weight=1)  # plot row expands
+        self.plot_frame.grid_rowconfigure(1, weight=0)  # summary row stays compact
+        self.plot_frame.grid_columnconfigure(0, weight=1)
+
+        # plot area
+        self.plot_area = ttk.Frame(self.plot_frame)
+        self.plot_area.grid(row=0, column=0, sticky="nsew")
+
+        # render matplotlib figure inside plot_area
+        self.canvas = self._render_plot_with_matplotlib(
+            self.plot_area,
             plot_data,
             plot_type=plot_options.plot_type,
             resolution=plot_options.resolution,
         )
 
-    def _render_plot_with_matplotlib(self, parent, plot_data: ResultsPlotData,
-                                     plot_type: str, resolution: int):
-        self.fig, self.ax = plt.subplots(figsize=(5, 3), dpi=100)
+        # ensure the canvas stretches
+        if hasattr(self.canvas, "get_tk_widget"):
+            self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+
+        # summary
+        self.summary_frame = ttk.Frame(self.plot_frame)
+        self.summary_frame.grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        self._render_summary(
+            getattr(self.output_pane_data, "results_summary_data", None),
+            self.summary_frame,
+        )
+
+    def _render_plot_with_matplotlib(
+            self,
+            parent,
+            plot_data: ResultsPlotData,
+            plot_type: str,
+            resolution: int
+    ):
+        # Create figure + axis
+        self.fig, self.ax = plt.subplots(figsize=(8, 6), dpi=100)  # larger base size
+
+        # Clear previous plot
+        self.ax.clear()
 
         # --- Plot type handling ---
         if plot_type == "series":
-            self.ax.plot(range(len(plot_data.data)), plot_data.data, marker="o", linestyle="-")
+            self.ax.plot(
+                range(len(plot_data.data)),
+                plot_data.data,
+                marker="o",
+                linestyle="-"
+            )
             self.ax.set_xlabel("Index")
             self.ax.set_ylabel(plot_data.variable_name)
-            # force integer ticks on x-axis
             self.ax.xaxis.get_major_locator().set_params(integer=True)
 
         elif plot_type == "distribution":
             bins = max(1, int(resolution))  # clamp resolution
-            self.ax.hist(plot_data.data, bins=bins, edgecolor="black", alpha=0.7)
+            self.ax.hist(
+                plot_data.data,
+                bins=bins,
+                edgecolor="black",
+                alpha=0.7
+            )
             self.ax.set_xlabel(plot_data.variable_name)
             self.ax.set_ylabel("Frequency")
 
-        # --- Titles inside the plot ---
+        # --- Titles ---
         if plot_data.title:
             self.plot_title = plot_data.title
-            self.ax.set_title(self.plot_title, fontsize=12, fontweight="bold", loc="left", pad=10, color=f"{self.style.primary_fg}")
+            self.ax.set_title(
+                self.plot_title,
+                fontsize=12,
+                fontweight="bold",
+                loc="left",
+                pad=10,
+                color=f"{self.style.primary_fg}"
+            )
         if self.output_pane_data.plot_options:
-            # subtitle as text below main title
             self.plot_subtitle = self.output_pane_data.plot_options.plot_type
             self.ax.text(
-                0, 1, self.plot_subtitle,
+                0,
+                1,
+                self.plot_subtitle,
                 transform=self.ax.transAxes,
-                fontsize=9, style="italic",
-                ha="left", va="bottom", color=f"{self.style.primary_fg}"
+                fontsize=9,
+                style="italic",
+                ha="left",
+                va="bottom",
+                color=f"{self.style.primary_fg}"
             )
 
         # --- Styling ---
         self.ax.grid(True, linestyle="--", alpha=0.6)
         self.fig.tight_layout()
 
-        # Embed into Tkinter frame
-        self.canvas = FigureCanvasTkAgg(self.fig, master=parent)
-        self.canvas.draw()
-        self.canvas.get_tk_widget().grid(sticky="nsew")
+        # --- Embed into Tkinter ---
+        canvas = FigureCanvasTkAgg(self.fig, master=parent)
+        widget = canvas.get_tk_widget()
 
+        # let the canvas expand
+        widget.grid(row=0, column=0, sticky="nsew")
+        parent.grid_rowconfigure(0, weight=1)
+        parent.grid_columnconfigure(0, weight=1)
+
+        self.style.apply_style_to_plot(self.window)
+        canvas.draw()
+
+        return canvas
     # ------------------- helpers: table rendering -------------------
     def _render_table(self, parent: ttk.Frame, table_obj: Any):
         """
@@ -283,13 +344,15 @@ class OutputPane:
         headers = getattr(table_obj, "headers", None)
         rows = getattr(table_obj, "rows", None)
         if headers is None or rows is None:
-            # fallback: try to treat it as list of dicts
             if isinstance(table_obj, dict):
                 headers = list(table_obj.keys())
                 rows = [table_obj]
+                self.clear_warning()
             else:
-                ttk.Label(parent, text="Table structure not recognized").grid(sticky="nsew")
+                self.show_warning("No data yet.")
                 return
+        else:
+            self.clear_warning()
 
         # treeview and scrollbars
         tree = ttk.Treeview(parent, columns=headers, show="headings")
@@ -403,6 +466,19 @@ class OutputPane:
             wraplength=int(self.screen_width * 0.3)
         ).grid(sticky="w")
 
+    # ------------------- helpers - warnings -------------------
+
+    def show_warning(self, message: str):
+        # remove old warning if exists
+        self.clear_warning()
+        # create new label at the bottom of the common frame
+        self.warning_label = ttk.Label(self.pane_tk, text=message)
+        self.warning_label.pack(side="bottom", padx=(6, 6), pady=(6, 6))
+
+    def clear_warning(self):
+        if hasattr(self, "warning_label") and self.warning_label is not None:
+            self.warning_label.destroy()
+            self.warning_label = None
 
     # ------------------- utility -------------------
     def destroy(self):
@@ -420,3 +496,42 @@ class OutputPane:
         self.results_table_frame = None
         self.summary_frame = None
         self.references_table_frame = None
+
+    def _make_sortable_treeview(self, tree: ttk.Treeview):
+        """
+        Add click-to-sort capability for a ttk.Treeview.
+        """
+        tree._sort_column = None  # track current sorted column
+        tree._sort_descending = False
+
+        def sort_column(event):
+            # Identify the column clicked
+            col = tree.identify_column(event.x)
+            col_index = int(col.replace("#", "")) - 1  # Treeview columns are "#1", "#2", ...
+            col_id = tree["columns"][col_index]
+
+            # Get all items
+            data = [(tree.set(k, col_id), k) for k in tree.get_children("")]
+
+            # Determine if numeric
+            try:
+                data = [(float(v), k) for v, k in data]
+            except ValueError:
+                pass  # keep as string if conversion fails
+
+            # Determine order
+            descending = False
+            if tree._sort_column == col_id:
+                descending = not tree._sort_descending
+            tree._sort_column = col_id
+            tree._sort_descending = descending
+
+            # Sort data
+            data.sort(reverse=descending)
+
+            # Reorder rows
+            for index, (_, k) in enumerate(data):
+                tree.move(k, "", index)
+
+        # Bind header click
+        tree.bind("<Button-1>", sort_column)

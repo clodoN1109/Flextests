@@ -9,11 +9,11 @@ from interface.GUI.models.ResultsTable import ResultsTable
 
 class OutputPaneData:
     def __init__(self, test_description:str,
-                 references_table_data:ReferencesTable,
-                 results_summary_data:ResultsSummaryTable,
-                 results_table_data: ResultsTable,
-                 plot_data:List[ResultsPlotData],
-                 plot_options:PlotOptions):
+                 references_table_data:ReferencesTable|None=None,
+                 results_summary_data:ResultsSummaryTable|None=None,
+                 results_table_data: ResultsTable|None=None,
+                 plot_data:List[ResultsPlotData]|None=None,
+                 plot_options:PlotOptions|None=None):
         self.test_description = test_description
         self.references_table_data = references_table_data
         self.results_summary_data = results_summary_data
