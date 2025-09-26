@@ -1,6 +1,7 @@
 from tkinter import Tk
 from typing import List
 from application.app import App
+from interface.GUI.components.window import Window
 from interface.GUI.gui_config import GUIConfig
 from interface.GUI.gui_renderer import GUIRenderer
 from interface.GUI.gui_styles import GUIStyle
@@ -12,6 +13,7 @@ class GUI:
         self.config = GUIConfig()
         self.root = None
         self.style = None
+        self.window:Window|None = None
 
     def prepare(self, app: App, config:GUIConfig) -> None:
         self.app = app
@@ -25,4 +27,3 @@ class GUI:
     def launch(self) -> None:
         GUIRenderer(self).render()
         self.root.mainloop()
-
