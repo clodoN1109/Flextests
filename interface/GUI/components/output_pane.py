@@ -175,7 +175,6 @@ class OutputPane:
         self.references_table_frame.grid_rowconfigure(0, weight=1)
         self.references_table_frame.grid_columnconfigure(0, weight=1)
         self._render_table(self.references_table_frame, table_data)
-        self._make_sortable_treeview(self.references_table_frame.winfo_children()[0])
 
     # ------------------- RESULTS -------------------
     def _render_results(self):
@@ -189,7 +188,6 @@ class OutputPane:
         self.results_table_frame.grid_rowconfigure(0, weight=1)
         self.results_table_frame.grid_columnconfigure(0, weight=1)
         self._render_table(self.results_table_frame, getattr(self.output_pane_data, "results_table_data", None))
-        self._make_sortable_treeview(self.results_table_frame.winfo_children()[0])
 
     def _render_statistics(self):
         plot_data_list: List[ResultsPlotData] = getattr(
@@ -201,7 +199,7 @@ class OutputPane:
 
         # no data or no options
         if not plot_data_list or not plot_options:
-            self.show_warning("No data yet.")
+            self.show_warning("No data to display.")
             return
         else:
             self.clear_warning()
@@ -216,7 +214,7 @@ class OutputPane:
             None,
         )
         if not plot_data or not plot_data.data:
-            self.show_warning("No data yet.")
+            self.show_warning("No statistics to display.")
             return
         self.clear_warning()
 
@@ -349,7 +347,7 @@ class OutputPane:
                 rows = [table_obj]
                 self.clear_warning()
             else:
-                self.show_warning("No data yet.")
+                self.show_warning("No data to display.")
                 return
         else:
             self.clear_warning()
@@ -382,6 +380,9 @@ class OutputPane:
         # ensure parent grid expands treeview
         parent.grid_rowconfigure(0, weight=1)
         parent.grid_columnconfigure(0, weight=1)
+        if len(parent.winfo_children())>0:
+            self._make_sortable_treeview(parent.winfo_children()[0])
+
 
     def _get_row_value(self, row_obj: Any, header: str):
         # try dataclass-like or dict-like access
@@ -472,8 +473,8 @@ class OutputPane:
         # remove old warning if exists
         self.clear_warning()
         # create new label at the bottom of the common frame
-        self.warning_label = ttk.Label(self.pane_tk, text=message)
-        self.warning_label.pack(side="bottom", padx=(6, 6), pady=(6, 6))
+        self.warning_label = ttk.Label(self.pane_tk, text=message, anchor="center")
+        self.warning_label.place(relx=0.5, rely=0.5, anchor="center")
 
     def clear_warning(self):
         if hasattr(self, "warning_label") and self.warning_label is not None:
@@ -497,7 +498,8 @@ class OutputPane:
         self.summary_frame = None
         self.references_table_frame = None
 
-    def _make_sortable_treeview(self, tree: ttk.Treeview):
+    @staticmethod
+    def _make_sortable_treeview(tree: ttk.Treeview):
         """
         Add click-to-sort capability for a ttk.Treeview.
         """
@@ -505,19 +507,24 @@ class OutputPane:
         tree._sort_descending = False
 
         def sort_column(event):
+            # Check if click is on a heading
+            region = tree.identify_region(event.x, event.y)
+            if region != "heading":
+                return  # ignore clicks outside headers
+
             # Identify the column clicked
             col = tree.identify_column(event.x)
-            col_index = int(col.replace("#", "")) - 1  # Treeview columns are "#1", "#2", ...
+            col_index = int(col.replace("#", "")) - 1  # "#1", "#2", ...
             col_id = tree["columns"][col_index]
 
             # Get all items
             data = [(tree.set(k, col_id), k) for k in tree.get_children("")]
 
-            # Determine if numeric
+            # Try numeric conversion
             try:
                 data = [(float(v), k) for v, k in data]
             except ValueError:
-                pass  # keep as string if conversion fails
+                pass  # leave as strings if not numbers
 
             # Determine order
             descending = False
@@ -533,5 +540,5 @@ class OutputPane:
             for index, (_, k) in enumerate(data):
                 tree.move(k, "", index)
 
-        # Bind header click
+        # Bind clicks on the **heading area only**
         tree.bind("<Button-1>", sort_column)

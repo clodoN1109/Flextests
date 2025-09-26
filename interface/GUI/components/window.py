@@ -7,6 +7,9 @@ from interface.GUI.components.title_bar import TitleBar
 from interface.GUI.gui_config import GUIConfig
 from interface.GUI.gui_styles import GUIStyle
 
+# pick a small movement threshold (px) to distinguish a click from a real drag
+DRAG_START_THRESHOLD = 5
+
 class Window:
     def __init__(self, root, style: GUIStyle, app: App, config: GUIConfig) -> None:
         # elements
@@ -121,35 +124,6 @@ class Window:
         self._drag_data["action"] = action
         self.root.config(cursor=cursor)
 
-    def on_press(self, event):
-
-        action = self._drag_data.get("action", "")
-
-        # Record mouse and window start positions for both move and resize
-        self._drag_data["x"], self._drag_data["y"] = event.x_root, event.y_root
-        self._drag_data["orig_x"] = self.root.winfo_x()
-        self._drag_data["orig_y"] = self.root.winfo_y()
-        self._drag_data["orig_w"] = self.root.winfo_width()
-        self._drag_data["orig_h"] = self.root.winfo_height()
-
-        # Only create ghost Toplevel if this is a resize
-        if hasattr(action, "startswith") and action.startswith("resize"):
-            self.root.bind("<B1-Motion>", self.on_drag)
-
-            if not hasattr(self, "ghost_frame"):
-                self.ghost_frame = tk.Toplevel(self.root)
-                self.ghost_frame.overrideredirect(True)
-                self.ghost_frame.attributes("-alpha", 0.3)  # semi-transparent
-                self.ghost_frame.config(bg="#1f77b4")  # visible ghost for testing
-
-            # Match original window size/position
-            self.ghost_frame.geometry(
-                f"{self._drag_data['orig_w']}x{self._drag_data['orig_h']}+"
-                f"{self._drag_data['orig_x']}+{self._drag_data['orig_y']}"
-            )
-            self.ghost_frame.deiconify()
-            self.ghost_frame.lift()
-
     def on_move(self, event):
         """
         Move the window while the mouse button is held down (live).
@@ -172,17 +146,63 @@ class Window:
 
         self.root.geometry(f"+{new_x}+{new_y}")
 
+    def on_press(self, event):
+        action = self._drag_data.get("action", "")
+
+        # Record mouse and window start positions
+        self._drag_data["x"], self._drag_data["y"] = event.x_root, event.y_root
+        self._drag_data["orig_x"] = self.root.winfo_x()
+        self._drag_data["orig_y"] = self.root.winfo_y()
+        self._drag_data["orig_w"] = self.root.winfo_width()
+        self._drag_data["orig_h"] = self.root.winfo_height()
+
+        # mark that resize/drag hasn't actually started yet
+        self._drag_data["resize_started"] = False
+
+        # Always bind release so we can handle the "click without drag" case
+        self.root.bind("<ButtonRelease-1>", self.on_release)
+
+        # For resize actions bind on_drag to handle geometry changes.
+        # For move action, bind on_move (if that's how you handle live move).
+        if action and action.startswith("resize"):
+            # Use B1-Motion to track resizing — actual ghost will be created once movement > threshold
+            self.root.bind("<B1-Motion>", self.on_drag)
+        elif action == "move":
+            # If you handle live move with on_move, bind it here
+            self.root.bind("<B1-Motion>", self.on_move)
+
     def on_drag(self, event):
         """
         Resize the ghost_frame according to the pressed corner/edge and current mouse.
+        Only create/show ghost after movement exceeds threshold to avoid accidental clicks.
         """
-        # If ghost not created, nothing to do
-        if not hasattr(self, "ghost_frame") or self.ghost_frame is None:
-            return
-
+        # compute deltas
         dx = event.x_root - self._drag_data["x"]
         dy = event.y_root - self._drag_data["y"]
 
+        # if resize hasn't actually started, wait until movement passes threshold
+        if not self._drag_data.get("resize_started", False):
+            if abs(dx) < DRAG_START_THRESHOLD and abs(dy) < DRAG_START_THRESHOLD:
+                return  # not a real drag yet
+            # now we consider the resize to have officially started
+            self._drag_data["resize_started"] = True
+
+            # create ghost_frame lazily (only when real drag begins)
+            if not hasattr(self, "ghost_frame") or self.ghost_frame is None:
+                self.ghost_frame = tk.Toplevel(self.root)
+                self.ghost_frame.overrideredirect(True)
+                self.ghost_frame.attributes("-alpha", 0.3)
+                self.ghost_frame.config(bg="#1f77b4")
+
+            # Place ghost frame over current window
+            self.ghost_frame.geometry(
+                f"{self._drag_data['orig_w']}x{self._drag_data['orig_h']}+"
+                f"{self._drag_data['orig_x']}+{self._drag_data['orig_y']}"
+            )
+            self.ghost_frame.deiconify()
+            self.ghost_frame.lift()
+
+        # proceed to compute new geometry based on the action (same logic as before)
         x = self._drag_data["orig_x"]
         y = self._drag_data["orig_y"]
         w = self._drag_data["orig_w"]
@@ -218,21 +238,47 @@ class Window:
             new_h = max(self.min_height, h + dy)
             new_x = x + (w - new_w)
 
-        # Update ghost geometry
-        self.ghost_frame.geometry(f"{new_w}x{new_h}+{new_x}+{new_y}")
-        self.root.bind("<ButtonRelease-1>", self.on_release)
+        # Update ghost geometry (if it exists)
+        if hasattr(self, "ghost_frame") and self.ghost_frame is not None:
+            self.ghost_frame.geometry(f"{new_w}x{new_h}+{new_x}+{new_y}")
 
     def on_release(self, event):
-        if hasattr(self, "ghost_frame"):
-            # Apply ghost geometry
-            self.root.geometry(self.ghost_frame.geometry())
-            self.ghost_frame.withdraw()
+        """
+        Called when mouse button is released. Apply resize if it really happened,
+        or destroy ghost if it was an accidental click without movement.
+        """
+        action = self._drag_data.get("action", "")
 
-            # Update drag reference so move works again
-            self._drag_data["orig_x"] = self.root.winfo_x()
-            self._drag_data["orig_y"] = self.root.winfo_y()
-            self._drag_data["orig_w"] = self.root.winfo_width()
-            self._drag_data["orig_h"] = self.root.winfo_height()
+        # If we had a resize action
+        if action and action.startswith("resize"):
+            resize_started = self._drag_data.get("resize_started", False)
+
+            # If ghost exists and resize started, apply geometry; otherwise destroy ghost
+            if hasattr(self, "ghost_frame") and self.ghost_frame is not None:
+                if resize_started:
+                    try:
+                        # Apply ghost geometry to real window
+                        geom = self.ghost_frame.geometry()
+                        self.root.geometry(geom)
+                        # hide ghost instead of destroying if you want to reuse it later
+                        self.ghost_frame.withdraw()
+                    except Exception:
+                        # If something fails, ensure ghost is destroyed cleanly
+                        try:
+                            self.ghost_frame.destroy()
+                        finally:
+                            self.ghost_frame = None
+                else:
+                    # No actual resize movement — destroy the ghost (it might not be created)
+                    try:
+                        self.ghost_frame.destroy()
+                    finally:
+                        self.ghost_frame = None
+
+            # Reset the resize flag
+            self._drag_data["resize_started"] = False
+
+        # Unbind motion/release handlers that were attached on press
         self.root.unbind("<ButtonRelease-1>")
         self.root.unbind("<B1-Motion>")
 

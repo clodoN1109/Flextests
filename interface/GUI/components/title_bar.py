@@ -1,5 +1,8 @@
 from tkinter import ttk
 import tkinter as tk
+
+import matplotlib
+
 from infrastructure.environment.environment import Env
 from interface.GUI.components.button import Button
 from interface.GUI.gui_styles import GUIStyle
@@ -39,7 +42,7 @@ class TitleBar:
         Button(btn_frame, "☽/☀", self.toggle_dark_mode, width=10).render()
         Button(btn_frame, "🗕", self._minimize, width=10).render()
         Button(btn_frame, "🗖", self.toggle_maximize, width=10).render()
-        Button(btn_frame, "✕", self.window_tk.destroy, width=10).render()
+        Button(btn_frame, "✕", self.on_close, width=10).render()
 
         self.window_tk.title_separator = tk.Frame(
             self.window_tk,
@@ -119,3 +122,8 @@ class TitleBar:
 
     def save_config(self, new_config):
         self.window.app.repository.save_gui_config(new_config)
+
+    def on_close(self):
+        # Clean up matplotlib elements
+        matplotlib._pylab_helpers.Gcf.destroy_all()
+        self.window_tk.destroy()

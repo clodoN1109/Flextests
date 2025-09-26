@@ -1,3 +1,4 @@
+import os
 import sys
 import traceback
 from tkinter import ttk, filedialog
@@ -109,6 +110,7 @@ class InputPane:
 
         # -------------------- Configurations Section --------------------
         self.configurations_section_title = SectionTitle(self.pane_tk, "Configurations").render()
+        self.configurations_section_title.toggle()
         configurations_frame = self.configurations_section_title.target_frame  # Shortcut
 
         # Row 0 - Criteria
@@ -169,6 +171,7 @@ class InputPane:
 
         # -------------------- Statistics Section --------------------
         self.statistics_section_title = SectionTitle(self.pane_tk, "Statistics").render()
+        self.statistics_section_title.toggle()
         self.statistics_frame = self.statistics_section_title.target_frame
 
         # Row counter for consistent placement
@@ -367,7 +370,17 @@ class InputPane:
         popup = tk.Toplevel()
         popup.title(title)
         popup.grab_set()  # make it modal
-        popup.iconphoto(False, tk.PhotoImage(file=f"{Env.base_dir()}/interface/GUI/assets/icons/icon.png"))
+        
+        # Set popup icon
+        pyinstaller_path = f"{Env.base_dir()}/_internal/interface/GUI/assets/icons/icon.png"
+        pythonic_path    = f"{Env.base_dir()}/interface/GUI/assets/icons/icon.png"
+        path = None
+        if os.path.exists(pyinstaller_path):
+            path = pyinstaller_path
+        elif os.path.exists(pythonic_path):
+            path = pythonic_path
+        if path:
+            popup.iconphoto(False, tk.PhotoImage(file=path))
 
         width = 382
         height = 225
@@ -458,6 +471,7 @@ class InputPane:
         test_names_list = [test.name for test in self.app.get_tests_list()]
         self.test_selector.combobox.configure(values=test_names_list)
         self.test_selector.combobox.set(current_item_name)
+        self.present_test_info()
 
     def load_test_config(self, event=None):
         selected_test = self.get_selected_test()
