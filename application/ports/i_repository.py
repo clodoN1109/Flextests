@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 from domain.test import Test
+from interface.GUI.gui_config import GUIConfig
 
 
 class IRepository(ABC):
@@ -26,3 +27,8 @@ class IRepository(ABC):
     def remove_test(self, test: "Test") -> None:
         pass
 
+    def save_gui_config(self, config: "GUIConfig") -> None:
+        """Save GUI configuration to file."""
+
+    def load_gui_config(self) -> "GUIConfig":
+        """Load GUI configuration from file. Creates file with defaults if missing/invalid."""

@@ -12,7 +12,7 @@ class Test:
         self.simulation:Simulation = Simulation(test_name, simulation_script, description)
         self.criteria: TestCriteria | None = None
         self.reference_source: str | None = None
-        self.references: list[TestReference] | None = None
+        self.reference: list[TestReference] | None = None
         self.results: list[TestResult] = []
         self.stats: TestStats | None = None
         self.final_result: str | None = None
@@ -27,12 +27,12 @@ class Test:
 
         sim_results: list[SimulationResult] = self.simulation.results
         self.results = [
-            self.evaluate(sim_result, self.criteria, self.references)
+            self.evaluate(sim_result, self.criteria, self.reference)
             for sim_result in sim_results
         ]
         self.stats = TestStats.from_results(self.results)
         compliance_rate = self.stats.effective_and_efficient/self.stats.total
-        if compliance_rate < self.criteria.compliance_rate:
+        if float(compliance_rate) < self.criteria.compliance_rate:
             self.final_result = "failed"
         else:
             self.final_result = "passed"
@@ -49,20 +49,23 @@ class Test:
             raise RuntimeError("No results available. Did you run execute()?")
         return TestStats.from_results(self.results)
 
+    def get_stats_variable_data(self, variable_name: str):
+        data = [result.simulation.stats.get_value_by_name(variable_name) for result in self.results]
+
     @staticmethod
     def evaluate(
         sim_result: "SimulationResult",
         criteria: "TestCriteria | None" = None,
-        references: list["TestReference"] | None = None,
+        reference: list["TestReference"] | None = None,
     ) -> "TestResult":
-        """Evaluate a single simulation result against references and criteria."""
+        """Evaluate a single simulation result against reference and criteria."""
         result = TestResult()
 
-        # --- efficacy → check result against references ---
-        if references:
+        # --- efficacy → check result against reference ---
+        if reference:
             # find a matching reference by parameters
             matching_ref = next(
-                (ref for ref in references if ref.parameters == sim_result.parameters),
+                (ref for ref in reference if ref.parameters == sim_result.parameters),
                 None,
             )
 
@@ -75,7 +78,7 @@ class Test:
                 # reference exists, but no matching parameters
                 result.efficacy = "failed"
         else:
-            # no references → auto-pass
+            # no reference → auto-pass
             result.efficacy = "passed"
 
         # --- efficiency → check duration & memory ---

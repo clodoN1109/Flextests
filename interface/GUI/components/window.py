@@ -3,17 +3,19 @@ from infrastructure.environment.environment import Env
 import tkinter as tk
 from interface.GUI.components.panes import Panes
 from interface.GUI.components.title_bar import TitleBar
+from interface.GUI.gui_config import GUIConfig
 from interface.GUI.gui_styles import GUIStyle
 
 class Window:
-    def __init__(self, root, style: GUIStyle, app: App) -> None:
+    def __init__(self, root, style: GUIStyle, app: App, config: GUIConfig) -> None:
         # elements
-        self.title_bar = None
+        self.title_bar:TitleBar|None = None
         self.panes = None
 
         self.root = root
         self.tk = root
         self.app = app
+        self.config: GUIConfig = config
         self.style = style
         self.ensure_overrideredirect()
 
@@ -55,7 +57,7 @@ class Window:
 
         # Render elements
         self.title_bar = TitleBar(self.tk, self.style, self).render()
-        self.panes = Panes(self.tk, self.style, self.app).render()
+        self.panes = Panes(self.tk, self.style, self.app, self).render()
 
         return self
 
@@ -223,16 +225,13 @@ class Window:
             self.root.geometry(self.ghost_frame.geometry())
             self.ghost_frame.withdraw()
 
-            # Update drag references so move works again
+            # Update drag reference so move works again
             self._drag_data["orig_x"] = self.root.winfo_x()
             self._drag_data["orig_y"] = self.root.winfo_y()
             self._drag_data["orig_w"] = self.root.winfo_width()
             self._drag_data["orig_h"] = self.root.winfo_height()
         self.root.unbind("<ButtonRelease-1>")
         self.root.unbind("<B1-Motion>")
-
-
-
 
     def ensure_overrideredirect(self, interval_ms: int = 100):
         """
@@ -274,4 +273,3 @@ class Window:
         # define "inner area" inside PanedWindow where sash moves happen
         margin = 4  # pixels near edge still count as window resize
         return (px1 + margin < x < px2 - margin) and (py1 + margin < y < py2 - margin)
-

@@ -23,7 +23,7 @@ class CLIController:
 
         if isinstance(cmd, LaunchGUICommand):
             gui = GUI()
-            gui.prepare(App(Repository()), cmd.args)
+            gui.prepare(App(Repository()), self.repository.load_gui_config())
             gui.launch()
 
         if isinstance(cmd, SetSimulationCommand):
@@ -44,8 +44,8 @@ class CLIController:
         if isinstance(cmd, SetCriterionCommand):
             self.app.set_criterion(cmd.test_name, cmd.criterion_name, cmd.criterion_value)
 
-        if isinstance(cmd, SetReferencesCommand):
-                self.app.set_references_from_source(cmd.test_name, cmd.reference_source, cmd.data_points)
+        if isinstance(cmd, UpdateReferenceCommand):
+                self.app.update_reference(cmd.test_name, cmd.data_points)
 
         self._update_repository()
 
