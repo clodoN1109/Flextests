@@ -1,5 +1,6 @@
-from typing import Literal
+from typing import Literal, List
 
+from domain.failed_result import FailedResult
 from domain.simulation_result import SimulationResult
 
 
@@ -8,6 +9,7 @@ class TestResult:
         self.efficacy: Literal["passed", "failed"] | None = None
         self.efficiency: Literal["passed", "failed"] | None = None
         self.simulation: SimulationResult | None = None
+        self.failed_results: List[FailedResult] = []
 
     def __repr__(self) -> str:
         return (

@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import traceback
 from tkinter import ttk, filedialog
@@ -297,7 +298,10 @@ class InputPane:
 
             self.send_data_to_output_pane()
 
+            self.update_test_state(completed_test.final_result, selected_test_name)
+
             self.window.footer.set_state("idle")
+
 
         except Exception as e:
             tb = sys.exc_info()[2]  # traceback object
@@ -310,6 +314,19 @@ class InputPane:
                 f"{e} (File: {filename}, line: {lineno}, in {func_name})"
             )
 
+    def update_test_state(self, state, selected_test_name):
+        if state == "passed":
+            test_state_icon = "✔"
+        else:
+            test_state_icon = "❌"
+        self.test_selector.var.set(test_state_icon + self.get_selected_test_name())
+        self.test_selector.combobox.configure(values= [f"{test_state_icon} {re.sub(r"[✔❌]", "", test_name)}" if str(test_name)
+                                              .replace("✔","")
+                                              .replace("❌", "")
+                                              .strip() == selected_test_name
+                                              else test_name
+                                              for test_name in self.get_available_tests_list()]
+                                              )
 
     def update_test_sample(self, event=None):
         self.run_selected_test()
@@ -349,7 +366,12 @@ class InputPane:
             return ResultsPlotData()
 
     def get_selected_test_name(self):
-        return self.test_selector.var.get()
+        value = self.test_selector.var.get()
+        # remove check and cross marks
+        return value.replace("✔", "").replace("❌", "").strip()
+
+    def get_available_tests_list(self):
+        return self.test_selector.combobox.cget("values")
 
     def get_selected_test(self) -> Test:
         test_name = self.get_selected_test_name()

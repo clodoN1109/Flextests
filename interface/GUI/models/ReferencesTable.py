@@ -1,15 +1,18 @@
 from dataclasses import dataclass
 from typing import Any
 
+from dataclasses import dataclass
+from typing import Any
+
 @dataclass
 class ReferenceRow:
-    result: str
+    results: dict[str, str]          # now a dict, not a str
     parameters: dict[str, Any]
 
     def __getitem__(self, key: str):
-        # Access fixed or parameter values like row["result"], row["alpha"], etc.
-        if key == "result":
-            return self.result
+        # Access values like row["area"], row["hypotenuse"], row["x"], etc.
+        if key in self.results:      # check inside results dict
+            return self.results[key]
         return self.parameters.get(key, None)
 
 
@@ -29,22 +32,25 @@ class ReferencesTable:
     @staticmethod
     def get_references_table(test: "Test") -> "ReferencesTable":
         if not test.reference:
-            return ReferencesTable(["result"], [])
+            return ReferencesTable(["no test references"], [])
 
-        # Collect all parameter keys across references
-        all_param_keys: set[str] = set()
+        # Collect all keys across results + parameters
+        all_keys: set[str] = set()
         for ref in test.reference:
+            if ref.results:
+                all_keys.update(ref.results.keys())
             if ref.parameters:
-                all_param_keys.update(ref.parameters.keys())
+                all_keys.update(ref.parameters.keys())
 
-        headers = ["result"] + sorted(all_param_keys)
+        headers = sorted(all_keys)
 
         rows: list[ReferenceRow] = []
         for ref in test.reference:
             row = ReferenceRow(
-                result=ref.result,
+                results=ref.results or {},
                 parameters=ref.parameters or {}
             )
             rows.append(row)
 
         return ReferencesTable(headers, rows)
+

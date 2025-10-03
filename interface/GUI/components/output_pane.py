@@ -213,15 +213,6 @@ class OutputPane:
             ),
             None,
         )
-        if not plot_data or not plot_data.data:
-            self.show_warning("No statistics to display.")
-            return
-        self.clear_warning()
-
-        # container for plot + summary
-        # allow content_frame to expand its child
-        self.content_frame.grid_rowconfigure(0, weight=1)
-        self.content_frame.grid_columnconfigure(0, weight=1)
 
         # container for plot + summary
         self.plot_frame = ttk.Frame(self.content_frame)
@@ -230,21 +221,24 @@ class OutputPane:
         self.plot_frame.grid_rowconfigure(1, weight=0)  # summary row stays compact
         self.plot_frame.grid_columnconfigure(0, weight=1)
 
-        # plot area
-        self.plot_area = ttk.Frame(self.plot_frame)
-        self.plot_area.grid(row=0, column=0, sticky="nsew")
+        if plot_data and plot_data.data:
+            # plot area
+            self.plot_area = ttk.Frame(self.plot_frame)
+            self.plot_area.grid(row=0, column=0, sticky="nsew")
 
-        # render matplotlib figure inside plot_area
-        self.canvas = self._render_plot_with_matplotlib(
-            self.plot_area,
-            plot_data,
-            plot_type=plot_options.plot_type,
-            resolution=plot_options.resolution,
-        )
-
-        # ensure the canvas stretches
-        if hasattr(self.canvas, "get_tk_widget"):
-            self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+            # render matplotlib figure inside plot_area
+            self.canvas = self._render_plot_with_matplotlib(
+                self.plot_area,
+                plot_data,
+                plot_type=plot_options.plot_type,
+                resolution=plot_options.resolution,
+            )
+            # ensure the canvas stretches
+            if hasattr(self.canvas, "get_tk_widget"):
+                self.canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+            self.clear_warning()
+        else:
+            self.show_warning("No plot data to display.")
 
         # summary
         self.summary_frame = ttk.Frame(self.plot_frame)
@@ -338,6 +332,7 @@ class OutputPane:
         Generic renderer for ResultsTable / ReferencesTable style objects:
         - expects table_obj.headers: list[str]
         - expects table_obj.rows: iterable of row-objects where row[h] returns value for header h
+        - optionally supports table_obj.red_cells: list[HighlightedTableCell]
         """
         headers = getattr(table_obj, "headers", None)
         rows = getattr(table_obj, "rows", None)
@@ -361,15 +356,30 @@ class OutputPane:
         # create columns
         for h in headers:
             tree.heading(h, text=h)
-            # allow column to stretch a bit, initial width guess
             tree.column(h, width=max(60, min(300, int(len(h) * 10))), anchor="w", stretch=True)
 
+        # map of (row_index, header) → bg_color
+        cell_colors = {}
+        if hasattr(table_obj, "red_cells") and table_obj.red_cells:
+            for cell in table_obj.red_cells:
+                row_index = cell.row
+                cell_colors[(row_index, cell.header)] = cell.bg_color
+
         # insert rows
-        for r in rows:
-            try:
-                values = [self._cell_to_string(self._get_row_value(r, h)) for h in headers]
-            except Exception:
-                values = [self._cell_to_string(self._get_row_value_fallback(r, h)) for h in headers]
+        for r_index, r in enumerate(rows):
+            values = []
+            for c_index, h in enumerate(headers):
+                value = self._cell_to_string(self._get_row_value(r, h))
+
+                # prepend red X if this cell is in red_cells
+                if hasattr(table_obj, "red_cells") and table_obj.red_cells:
+                    for cell in table_obj.red_cells:
+                        if cell.row == r_index and cell.header == h:
+                            value = f"❌ {value}"  # prepend a red X
+                            break
+
+                values.append(value)
+
             tree.insert("", "end", values=values)
 
         # layout - place treeview with scrollbars using grid
@@ -380,9 +390,8 @@ class OutputPane:
         # ensure parent grid expands treeview
         parent.grid_rowconfigure(0, weight=1)
         parent.grid_columnconfigure(0, weight=1)
-        if len(parent.winfo_children())>0:
+        if len(parent.winfo_children()) > 0:
             self._make_sortable_treeview(parent.winfo_children()[0])
-
 
     def _get_row_value(self, row_obj: Any, header: str):
         # try dataclass-like or dict-like access

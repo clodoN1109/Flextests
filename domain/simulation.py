@@ -11,17 +11,20 @@ class Simulation:
     # Simulation script JSON output format:
     #
     # Each simulation script must print a JSON object with exactly two keys:
-    #   1. "result"     → a string representing the main outcome of the simulation
+    #   1. "result"     → a dictionary of names (strings) and their
+    #                     corresponding values representing the outcomes of the simulation
     #   2. "parameters" → a dictionary of parameter names (strings) and their
-    #                      corresponding values (strings) used in this simulation
+    #                     corresponding values (strings) used in this simulation
     #
     # Example of valid output:
     # {
-    #     "result": "result_3",
     #     "parameters": {
-    #         "x": "7",
-    #         "y": "25",
-    #         "z": "150"
+    #         "a": "71",
+    #         "b": "25",
+    #     },
+    #     "results": {
+    #         "area": "71",
+    #         "diagonal": "25",
     #     }
     # }
     #
@@ -79,7 +82,7 @@ class Simulation:
         )
 
         # parse JSON output using JsonFetcher helper
-        result_value = ""
+        results: dict[str, str] = {}
         parameters: dict[str, str] = {}
 
         if capture_output and stdout:
@@ -88,18 +91,16 @@ class Simulation:
             if not isinstance(data, dict):
                 raise ValueError("JSON output must be an object")
 
-            if "result" in data and "parameters" in data:
-                result_value = str(data["result"]).strip()
+            if "results" in data and "parameters" in data:
+                if not isinstance(data["results"], dict):
+                    raise ValueError("'results' must be a dictionary")
+                results = {str(k): str(v) for k, v in data["results"].items()}
                 if not isinstance(data["parameters"], dict):
                     raise ValueError("'parameters' must be a dictionary")
                 parameters = {str(k): str(v) for k, v in data["parameters"].items()}
-            elif len(data) == 1:
-                key, value = next(iter(data.items()))
-                result_value = str(value).strip()
-                parameters = {str(key).strip(): str(value).strip()}
             else:
                 raise ValueError(
-                    "JSON output must be either {'result':..., 'parameters': {...}} or a single key-value pair"
+                    "JSON output must be either {'results':..., 'parameters': {...}} or a single key-value pair"
                 )
 
-        return SimulationResult(stats=stats, result=result_value, parameters=parameters)
+        return SimulationResult(stats=stats, results=results, parameters=parameters)

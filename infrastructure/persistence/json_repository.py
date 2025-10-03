@@ -75,7 +75,7 @@ class Repository(IRepository):
             "reference": [
                 {
                     "parameters": ref.parameters,
-                    "result": ref.result,
+                    "results": ref.results,
                 }
                 for ref in (test.reference or [])
             ],
@@ -124,7 +124,7 @@ class Repository(IRepository):
             reference = [
                 TestReference(
                     parameters=ref.get("parameters", {}),
-                    result=ref.get("result", None),
+                    results=ref.get("results", {}),
                 )
                 for ref in ref_data
             ]
@@ -183,7 +183,7 @@ class Repository(IRepository):
                 reference = [
                     TestReference(
                         parameters=ref.get("parameters", {}),
-                        result=ref.get("result", None),
+                        results=ref.get("results", {}),
                     )
                     for ref in ref_data
                 ]

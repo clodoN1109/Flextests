@@ -1,3 +1,6 @@
+from typing import List
+
+from domain.failed_result import FailedResult
 from domain.test_criteria import TestCriteria
 from domain.test_reference import TestReference
 from domain.test_result import TestResult
@@ -59,42 +62,77 @@ class Test:
         reference: list["TestReference"] | None = None,
     ) -> "TestResult":
         """Evaluate a single simulation result against reference and criteria."""
-        result = TestResult()
+        result: TestResult = TestResult()
 
         # --- efficacy → check result against reference ---
         if reference:
-            # find a matching reference by parameters
+            # try to find a matching reference by parameters
             matching_ref = next(
                 (ref for ref in reference if ref.parameters == sim_result.parameters),
                 None,
             )
 
             if matching_ref:
-                if str(sim_result.result) == str(matching_ref.result):
-                    result.efficacy = "passed"
-                else:
-                    result.efficacy = "failed"
+                # Compare each expected key/value pair
+                for key, expected_value in matching_ref.results.items():
+                    actual_value = sim_result.results.get(key)
+                    if actual_value != expected_value:
+                        result.failed_results.append(
+                            FailedResult(key, str(actual_value), expected_value)
+                        )
+
+                result.efficacy = "passed" if not result.failed_results else "failed"
             else:
-                # reference exists, but no matching parameters
+                # reference exists but no matching parameters
                 result.efficacy = "failed"
+                result.failed_results.append(
+                    FailedResult(
+                        key="parameters",
+                        value=str(sim_result.parameters),
+                        expected_value="matching reference parameters",
+                    )
+                )
         else:
-            # no reference → auto-pass
-            result.efficacy = "passed"
+            # no reference at all → mark as failed (not enough info to check)
+            result.efficacy = "failed"
+            result.failed_results.append(
+                FailedResult(
+                    key="reference",
+                    value="None",
+                    expected_value="at least one reference",
+                )
+            )
 
         # --- efficiency → check duration & memory ---
         if criteria:
             stats = sim_result.stats
-            conditions = [
-                criteria.duration is None or stats.duration <= criteria.duration,
-                criteria.max_memory is None or stats.max_memory <= criteria.max_memory,
-                criteria.mean_memory is None or stats.mean_memory <= criteria.mean_memory,
-            ]
-            result.efficiency = "passed" if all(conditions) else "failed"
+            eff_failures: list[FailedResult] = []
+
+            if criteria.duration is not None and stats.duration > criteria.duration:
+                eff_failures.append(
+                    FailedResult("duration", str(stats.duration), criteria.duration)
+                )
+            if criteria.max_memory is not None and stats.max_memory > criteria.max_memory:
+                eff_failures.append(
+                    FailedResult("max_memory", str(stats.max_memory), criteria.max_memory)
+                )
+            if criteria.mean_memory is not None and stats.mean_memory > criteria.mean_memory:
+                eff_failures.append(
+                    FailedResult("mean_memory", str(stats.mean_memory), criteria.mean_memory)
+                )
+
+            if eff_failures:
+                result.efficiency = "failed"
+                result.failed_results.extend(eff_failures)
+            else:
+                result.efficiency = "passed"
         else:
             result.efficiency = "passed"  # no criteria → auto-pass
 
+        # Always keep a reference to the simulation
         result.simulation = sim_result
         return result
+
 
     def report(self) -> str:
         indent = "    "
